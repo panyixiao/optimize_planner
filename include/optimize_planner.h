@@ -35,6 +35,8 @@ enum planner_selection
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
+int Ajay;
+
 class optimize_planner
 {
 public:
