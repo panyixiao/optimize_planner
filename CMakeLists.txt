@@ -100,7 +100,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  include SYSTEM ${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS} ${OMPL_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
