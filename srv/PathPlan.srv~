@@ -1,3 +1,4 @@
+std_msgs/string group_name
 geometry_msgs/Vector3 start
 geometry_msgs/Vector3 target
 float64 target_tolerance
@@ -14,7 +15,7 @@ float64 total_cost
 float64 total_length
 geometry_msgs/Vector3 tip_position
 geometry_msgs/Vector3 error
-deformable_ompl/PathState[] path
+
 uint8 SUCCESS=0
 uint8 APPROXIMATE=1
 uint8 TIMEOUT=2

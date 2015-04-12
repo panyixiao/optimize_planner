@@ -73,7 +73,7 @@ find_package(Eigen REQUIRED)
  generate_messages(
    DEPENDENCIES
    std_msgs  # Or other packages containing msgs
-   geometry_msgs 
+   geometry_msgs
  )
 
 ###################################
@@ -86,10 +86,10 @@ find_package(Eigen REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES optimize_planner
-#  CATKIN_DEPENDS ompl
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES optimize_planner
+  CATKIN_DEPENDS ompl
+  DEPENDS system_lib
 )
 
 ###########
@@ -98,9 +98,12 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-# include_directories(include)
+include_directories(include)
 include_directories(
-  include SYSTEM ${catkin_INCLUDE_DIRS} ${Eigen_INCLUDE_DIRS} ${OMPL_INCLUDE_DIRS}
+    include SYSTEM
+    ${catkin_INCLUDE_DIRS}
+    ${Eigen_INCLUDE_DIRS}
+    ${OMPL_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -109,16 +112,23 @@ include_directories(
 # )
 
 ## Declare a cpp executable
- add_executable(optimize_planner_node src/optimize_planner.cpp)
+ add_executable(${PROJECT_NAME}_node
+                include/optimize_planner.hpp
+                include/motoman_moveit.hpp
+                src/optimize_planner.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
- add_dependencies(optimize_planner_node optimize_planner_generate_messages_cpp)
+ add_dependencies(${PROJECT_NAME}_node optimize_planner_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(optimize_planner_node
+ target_link_libraries(${PROJECT_NAME}_node
    ${catkin_LIBRARIES}
  )
+
+add_executable(optimize_planner_client_node src/optimize_planner_client.cpp)
+add_dependencies(optimize_planner_client_node optimize_planner_generate_messages_cpp)
+target_link_libraries(optimize_planner_client_node ${catkin_LIBRARIES})
 
 #############
 ## Install ##
