@@ -21,6 +21,25 @@ int main(int argc, char **argv)
     optimize_planner::PathPlan srv;
 
     srv.request.group_name = "arm_left";
+
+
+    // -0.3772088970063918, -1.3143374665077188, 1.3055896989571494, -1.2431863366129394, -2.9914519460193256, 1.3527307468837322, 1.6504463451922884
+    float Jnt_Val_s = -0.3772088970063918;
+    float Jnt_Val_l = -1.3143374665077188;
+    float Jnt_Val_e =  1.3055896989571494;
+    float Jnt_Val_u = -1.2431863366129394;
+    float Jnt_Val_r = -2.9914519460193256;
+    float Jnt_Val_b =  1.3527307468837322;
+    float Jnt_Val_t =  1.6504463451922884;
+
+    srv.request.target_config.push_back(Jnt_Val_s);
+    srv.request.target_config.push_back(Jnt_Val_l);
+    srv.request.target_config.push_back(Jnt_Val_e);
+    srv.request.target_config.push_back(Jnt_Val_u);
+    srv.request.target_config.push_back(Jnt_Val_r);
+    srv.request.target_config.push_back(Jnt_Val_b);
+    srv.request.target_config.push_back(Jnt_Val_t);
+
     //Eigen::Affine3d start_pose = kinematic_state->getGlobalLinkTransform(leftArm->getEndEffectorName());
     //move_group_interface::MoveGroup right_arm_group("arm_right");
     //move_group_interface::MoveGroup left_arm_group("arm_left");

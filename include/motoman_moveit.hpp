@@ -28,6 +28,7 @@ public:
     }
 
 
+
     std::vector<double> GetGroupConfig(std::string& groupName)
     {
         std::vector<double> JointValues;

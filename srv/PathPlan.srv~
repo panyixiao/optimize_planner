@@ -1,4 +1,5 @@
-std_msgs/string group_name
+string group_name
+optimize_planner/JointState[] target_config
 geometry_msgs/Vector3 start
 geometry_msgs/Vector3 target
 float64 target_tolerance
@@ -15,7 +16,6 @@ float64 total_cost
 float64 total_length
 geometry_msgs/Vector3 tip_position
 geometry_msgs/Vector3 error
-
 uint8 SUCCESS=0
 uint8 APPROXIMATE=1
 uint8 TIMEOUT=2
