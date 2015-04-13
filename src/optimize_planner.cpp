@@ -45,11 +45,11 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
     }
     // Planning Time
     m_planner->planning_time = 5;
+
     m_planner->start_planning();
+
     return true;
 }
-
-
 
 int main(int argc, char **argv)
 {
