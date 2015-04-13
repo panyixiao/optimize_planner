@@ -116,7 +116,6 @@ include_directories(
  add_executable(${PROJECT_NAME}_node
                 include/optimize_planner.hpp
                 include/motoman_moveit.hpp
-                include/euclidian_se3_cost.hpp
                 src/optimize_planner.cpp)
 
 ## Add cmake target dependencies of the executable/library

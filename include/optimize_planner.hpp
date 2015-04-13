@@ -17,7 +17,7 @@
 //#include "optimize_planner/include/euclidian_se3_cost.hpp"
 
 // Cost Function
-//#include "euclidian_se3_cost.hpp"
+#include "euclidian_se3_cost.hpp"
 
 // Trajetory
 #include <moveit/robot_trajectory/robot_trajectory.h>
@@ -35,16 +35,6 @@ enum planner_type
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
 
-class SE3dis_OptimizationObjective : public ompl::base::OptimizationObjective
-{
-public:
-    SE3dis_OptimizationObjective(const ompl::base::SpaceInformationPtr &si) : ompl::base::OptimizationObjective(si){}
-    virtual ~SE3dis_OptimizationObjective(){}
-
-    virtual ompl::base::Cost stateCost(const ompl::base::State *s) const;
-    virtual ompl::base::Cost motionCost(const ompl::base::State *s1, const ompl::base::State *s2) const;
-
-};
 
 namespace optimize_planner
 {
@@ -56,7 +46,7 @@ namespace optimize_planner
                 // Give default planning time
                 planning_time = 10;
                 goal_tolerance = 0.01;
-                cost_bias = 0.5;
+                cost_bias = 0.1;
                 planner_choice = RRT_STAR;
              }
 
@@ -87,8 +77,7 @@ namespace optimize_planner
                 // Make a cost function that combines path length with minimizing Euclidian cost
                 ob::MultiOptimizationObjective* combined_cost_fn = new ob::MultiOptimizationObjective(sample_si);
                 ob::OptimizationObjectivePtr path_length_cost_fn(new ob::PathLengthOptimizationObjective(sample_si));
-                SE3dis_OptimizationObjective m_cost_fn(sample_si);
-                ob::OptimizationObjectivePtr workspace_cost_fn(&m_cost_fn);
+                ob::OptimizationObjectivePtr workspace_cost_fn(new SE3dis_OptimizationObjective(sample_si));
 
                 combined_cost_fn->addObjective(path_length_cost_fn, (1.0 - cost_bias));
                 combined_cost_fn->addObjective(workspace_cost_fn, cost_bias);
@@ -111,6 +100,8 @@ namespace optimize_planner
                     path = pdef->getSolutionPath();
                     std::cout<<"Find Path"<<std::endl;
                     path->print(std::cout);
+                    //std::cout<< "The path cost is:" <<path->cost()<<std::endl;
+                    //path->cost()
                     return true;
                 }
                 else

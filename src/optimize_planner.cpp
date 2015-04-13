@@ -18,7 +18,6 @@ optimize_planner::motoman_planner* m_planner;
 bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::Response &res)
 {
 
-    std::vector<double> goal_test(7,0.1);
     // Using Current configuration as start
     m_planner->start_Config.clear();
     m_planner->start_Config = m_robot_model->GetGroupConfig(req.group_name);
@@ -36,13 +35,8 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
         double JntValue = req.target_config[i];
         temp_target_config.push_back(JntValue);
     }
+
     m_planner->goal_Config = temp_target_config;
-    std::vector<double>::iterator goal_iter = m_planner->goal_Config.begin();
-    std::cout<<">>>>>>>>>> Goal Config >>>>>>>>>>>>"<<std::endl;
-    for(int i = 1;goal_iter!= m_planner->goal_Config.end();goal_iter++,i++)
-    {
-        std::cout<< "Config "<< i <<": "<<*goal_iter<<std::endl;
-    }
     // Planning Time
     m_planner->planning_time = 5;
 
