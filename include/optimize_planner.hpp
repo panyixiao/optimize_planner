@@ -1,16 +1,23 @@
-// ROS
+//ROS
 #include <ros/ros.h>
-// OMPL
+
+//OMPL
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/base/StateSpace.h>
 #include <ompl/geometric/SimpleSetup.h>
-
-#include <ompl/geometric/planners/rrt/RRTstar.h>
-#include <ompl/geometric/planners/rrt/RRTConnect.h>
-
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
+
+//OMPL Planners
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/planners/rrt/RRTstar.h>
+
+
+//MOVEIT
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/robot_state/robot_state.h>
+#include <moveit/planning_scene/planning_scene.h>
 
 // robot model
 //#include "optimize_planner/include/euclidian_se3_cost.hpp"
@@ -20,6 +27,9 @@
 
 // Trajetory
 #include <moveit/robot_trajectory/robot_trajectory.h>
+
+// Macro to disable unused parameter compiler warnings
+#define UNUSED(x) (void)(x)
 
 enum planner_type
 {
@@ -33,6 +43,97 @@ enum planner_type
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
+
+void dealocate_StateValidityChecker_fn(ompl::base::StateValidityChecker* p)
+{
+    std::cout << ">>>>>>>>>>>>>>>Deallocate>>>>>>>>>>>>" << std::endl ;
+    UNUSED(p);
+}
+
+void dealocate_MotionValidator_fn(ompl::base::MotionValidator* p)
+{
+    UNUSED(p);
+}
+
+void dealocate_OptimiztionObjective_fn(ompl::base::OptimizationObjective* p)
+{
+    UNUSED(p);
+}
+
+
+class ValidityChecker : public ob::StateValidityChecker
+{
+protected:
+
+    std::unique_ptr<planning_scene::PlanningScene> planning_scene_ptr_;
+public:
+    ValidityChecker(const ob::SpaceInformationPtr& si) :
+        ob::StateValidityChecker(si)
+    {
+        robot_model_loader::RobotModelLoader model_loader("robot_description");
+        planning_scene_ptr_.reset();
+        planning_scene_ptr_ = std::unique_ptr<planning_scene::PlanningScene>(new planning_scene::PlanningScene(model_loader.getModel()));
+        robot_model::RobotModelPtr r_model = model_loader.getModel();
+        //std::cout << "variable count " << r_model->getVariableCount() << std::endl ;
+        specs_.clearanceComputationType = ob::StateValidityCheckerSpecs::NONE;
+        specs_.hasValidDirectionComputation = false;
+    }
+
+    //Function to check if state is valid
+    virtual bool isValid(const ob::State *state) const
+    {
+        //std::cout << ">>>>>>>>>>>>>>>Validity Check>>>>>>>>>>>>" << std::endl ;
+        std::vector<double> JointValues(7) ;
+        std::vector<std::string> variable_names(7) ;
+        const ob::RealVectorStateSpace::StateType *sample_state = state->as<ob::RealVectorStateSpace::StateType>() ;
+
+        robot_state::RobotState& current_state = planning_scene_ptr_->getCurrentStateNonConst();
+        const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup("arm_left");
+
+        variable_names[0] = "arm_left_joint_1_s" ;
+        JointValues[0] = sample_state->values[0] ;
+
+        variable_names[1] = "arm_left_joint_2_l" ;
+        JointValues[1] = sample_state->values[1] ;
+
+        variable_names[2] = "arm_left_joint_3_e" ;
+        JointValues[2] = sample_state->values[2] ;
+
+        variable_names[3] = "arm_left_joint_4_u" ;
+        JointValues[3] = sample_state->values[3] ;
+
+        variable_names[4] = "arm_left_joint_5_r" ;
+        JointValues[4] = sample_state->values[4] ;
+
+        variable_names[5] = "arm_left_joint_6_b" ;
+        JointValues[5] = sample_state->values[5] ;
+
+        variable_names[6] = "arm_left_joint_7_t" ;
+        JointValues[6] = sample_state->values[6] ;
+
+        current_state.setVariablePositions(variable_names,JointValues) ;
+
+        //std::cout << *(current_state.getJointPositions("arm_left_joint_2_l")) << std::endl ;
+
+        //std::cout << "state valid ? " << planning_scene_ptr_->isStateValid(current_state, "left_arm") << std::endl ;
+        //std::cout << "state valid ? " << planning_scene_ptr_->isStateColliding(current_state,"left_arm") << std::endl ;
+        //std::cout << "state bound ? " << current_state.satisfiesBounds(model_group) << std::endl ;
+
+        if(planning_scene_ptr_->isStateValid(current_state, "left_arm") == 1
+                && current_state.satisfiesBounds(model_group) == 1
+                && planning_scene_ptr_->isStateColliding(current_state,"left_arm") == 0)
+        {
+            std::cout << ">>>>>>>>>>>>>>>Valid State>>>>>>>>>>>>" << std::endl ;
+            return true  ;
+        }
+        else
+        {
+            std::cout << ">>>>>>>>>>>>>>>Invalid State>>>>>>>>>>>>" << std::endl ;
+            return false  ;
+        }
+    }
+
+};
 
 namespace optimize_planner
 {
@@ -60,9 +161,14 @@ namespace optimize_planner
             // Setup Sample space
             ob::SpaceInformationPtr sample_si(new ob::SpaceInformation(Joint_space));
 
-            // Setup Collision Checker, Haven't finished yet
-            //sample_si->setStateValidityChecker(boost::bind(&motoman_planner::isStateValid,_1));
+            //Setup Validity Checker
+            ValidityChecker checker(sample_si) ;
+            ompl::base::StateValidityCheckerPtr validity_checker(&checker, dealocate_StateValidityChecker_fn);
+            sample_si->setStateValidityChecker(validity_checker);
+            sample_si->setStateValidityCheckingResolution(0.01); // 1%
+            sample_si->setup();
 
+            //Set start and end state
             ob::ScopedState<> start_state = SetStateConfig(start_Config,sample_si);
             start_state.print(std::cout);
             ob::ScopedState<> goal_state= SetStateConfig(goal_Config,sample_si);
@@ -96,7 +202,7 @@ namespace optimize_planner
             {
                 // Generate the Path
                 path = pdef->getSolutionPath();
-                std::cout<<"Find Path"<<std::endl;
+                std::cout<<"Path Found"<<std::endl;
                 path->print(std::cout);
                 std::cout<<"Total Cost: "<<path->cost(cost_fn).value()<<std::endl;
                 std::cout<<"Total Length:"<<path->length();
@@ -149,15 +255,15 @@ namespace optimize_planner
 
              return rt_state;
          }
-         bool isStateValid(const ob::State* state)
-         {
-             // Moveit is needed here
-             const ob::SE3StateSpace::StateType *se3state = state->as<ob::SE3StateSpace::StateType>();
-             const ob::RealVectorStateSpace::StateType *pos = se3state->as<ob::RealVectorStateSpace::StateType>(0);
-             const ob::SO3StateSpace::StateType *rot = se3state->as<ob::SO3StateSpace::StateType>(1);
+//         bool isStateValid(const ob::State* state)
+//         {
+//             // Moveit is needed here
+//             const ob::SE3StateSpace::StateType *se3state = state->as<ob::SE3StateSpace::StateType>();
+//             const ob::RealVectorStateSpace::StateType *pos = se3state->as<ob::RealVectorStateSpace::StateType>(0);
+//             const ob::SO3StateSpace::StateType *rot = se3state->as<ob::SO3StateSpace::StateType>(1);
 
-             return (const void*)rot != (const void*)pos;
-         }
+//             return (const void*)rot != (const void*)pos;
+//         }
 
     public:
          float planning_time;
