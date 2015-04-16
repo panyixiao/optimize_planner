@@ -144,41 +144,41 @@ public:
         const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup("arm_left");
 
         variable_names[0] = "arm_left_joint_1_s" ;
-        JointValues[0] = 0.0 ; //sample_state->values[0] ;
+        JointValues[0] = sample_state->values[0] ;
 
         variable_names[1] = "arm_left_joint_2_l" ;
-        JointValues[1] = 1.57 ; //sample_state->values[1] ;
+        JointValues[1] = sample_state->values[1] ;
 
         variable_names[2] = "arm_left_joint_3_e" ;
-        JointValues[2] = 0.0 ; //sample_state->values[2] ;
+        JointValues[2] = sample_state->values[2] ;
 
         variable_names[3] = "arm_left_joint_4_u" ;
-        JointValues[3] = 0.0 ; //sample_state->values[3] ;
+        JointValues[3] = sample_state->values[3] ;
 
         variable_names[4] = "arm_left_joint_5_r" ;
-        JointValues[4] = 0.0 ; //sample_state->values[4] ;
+        JointValues[4] = sample_state->values[4] ;
 
         variable_names[5] = "arm_left_joint_6_b" ;
-        JointValues[5] = 0.0 ; //sample_state->values[5] ;
+        JointValues[5] = sample_state->values[5] ;
 
         variable_names[6] = "arm_left_joint_7_t" ;
-        JointValues[6] = 0.0 ; //sample_state->values[6] ;
+        JointValues[6] = sample_state->values[6] ;
 
         current_state.setVariablePositions(variable_names,JointValues) ;
         current_state.update() ;
 
         //std::cout << *(current_state.getJointPositions("arm_left_joint_2_l")) << std::endl ;
 
-        std::cout << "state valid ? " << planning_scene_ptr_->isStateValid(current_state, "left_arm") << std::endl ;
-        std::cout << "state valid ? " << planning_scene_ptr_->isStateColliding(current_state,"left_arm") << std::endl ;
-        std::cout << "state bound ? " << current_state.satisfiesBounds(model_group) << std::endl ;
+        std::cout << "state valid  ? " << planning_scene_ptr_->isStateValid(current_state, "left_arm") << std::endl ;
+        std::cout << "state collid ? " << planning_scene_ptr_->isStateColliding(current_state,"left_arm") << std::endl ;
+        std::cout << "state bound  ? " << current_state.satisfiesBounds(model_group) << std::endl ;
         std::cout << "******************************" << std::endl ;
 
         if(planning_scene_ptr_->isStateValid(current_state, "left_arm") == 1
                 && current_state.satisfiesBounds(model_group) == 1
                 && planning_scene_ptr_->isStateColliding(current_state,"left_arm") == 0)
         {
-            std::cout << ">>>>>>>>>>>>>>>Valid State>>>>>>>>>>>>" << std::endl ;
+            //std::cout << ">>>>>>>>>>>>>>>Valid State>>>>>>>>>>>>" << std::endl ;
             return true  ;
         }
         else
