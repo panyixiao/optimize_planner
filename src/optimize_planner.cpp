@@ -17,7 +17,6 @@ optimize_planner::motoman_planner* m_planner;
 
 bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::Response &res)
 {
-
     // Using Current configuration as start
     m_planner->start_Config.clear();
     m_planner->start_Config = m_planner->m_robot_model.GetGroupConfig(req.group_name);
@@ -39,7 +38,10 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
     m_planner->goal_Config = temp_target_config;
     // Planning Time
     m_planner->planning_time = 5;
+    m_planner->cost_bias = req.cost_weight;
     m_planner->start_planning(req.group_name);
+
+    m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
 
     return true;
 }

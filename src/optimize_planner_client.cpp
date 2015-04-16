@@ -10,6 +10,7 @@
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/move_group_interface/move_group.h>
 
+
 using namespace move_group_interface;
 
 int main(int argc, char **argv)
@@ -39,6 +40,8 @@ int main(int argc, char **argv)
     srv.request.target_config.push_back(Jnt_Val_r);
     srv.request.target_config.push_back(Jnt_Val_b);
     srv.request.target_config.push_back(Jnt_Val_t);
+
+    srv.request.cost_weight = 0.7;
 
     //Eigen::Affine3d start_pose = kinematic_state->getGlobalLinkTransform(leftArm->getEndEffectorName());
     //move_group_interface::MoveGroup right_arm_group("arm_right");

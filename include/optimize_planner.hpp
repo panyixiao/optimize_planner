@@ -18,9 +18,6 @@
 // Cost Function
 #include "euclidian_se3_cost.hpp"
 
-// Trajetory
-#include <moveit/robot_trajectory/robot_trajectory.h>
-
 enum planner_type
 {
     RRT_STAR,
@@ -48,7 +45,7 @@ namespace optimize_planner
             planner_choice = RRT_STAR;
          }
 
-         bool start_planning(std::string group_name)
+        bool start_planning(std::string group_name)
         {
             ob::StateSpacePtr Joint_space(new ob::RealVectorStateSpace(motoman_arm_DOF));
             ob::RealVectorBounds Joint_bounds(motoman_arm_DOF);
@@ -71,6 +68,7 @@ namespace optimize_planner
             // Creat Problem Definition
             ob::ProblemDefinitionPtr pdef(new ob::ProblemDefinition(sample_si));
             pdef->setStartAndGoalStates(start_state,goal_state);
+            //pdef->addStartState(start_state);
 
             // Make a cost function that combines path length with minimizing workspace Euclidian cost
             ob::MultiOptimizationObjective* combined_cost_fn = new ob::MultiOptimizationObjective(sample_si);
@@ -91,18 +89,38 @@ namespace optimize_planner
             planner->setProblemDefinition(pdef);
             planner->setup();
             // Plan!!
-            ob::PlannerStatus solved = planner->solve(planning_time);
-            if(solved)
+            ob::PlannerStatus status = planner->solve(planning_time);
+
+            // Generate a trajectory
+
+            if(status == ob::PlannerStatus::EXACT_SOLUTION || status == ob::PlannerStatus::APPROXIMATE_SOLUTION)
             {
-                // Generate the Path
-                path = pdef->getSolutionPath();
                 std::cout<<"Find Path"<<std::endl;
+                // Generate the Path
+                optimized_trajectory.clear();
+                /*path = pdef->getSolutionPath();
                 path->print(std::cout);
                 std::cout<<"Total Cost: "<<path->cost(cost_fn).value()<<std::endl;
-                std::cout<<"Total Length:"<<path->length();
+                std::cout<<"Total Length:"<<path->length()<<std::endl;
+                std::cout<<"Distance to goal: "<<pdef->getSolutionDifference()<<std::endl;
+                */
 
-                //std::cout<< "The path cost is:" <<path->cost()<<std::endl;
-                //path->cost()
+                path = boost::static_pointer_cast<og::PathGeometric>(pdef->getSolutionPath());
+                path->interpolate(10);
+                //path->print(std::cout);
+                std::vector<ob::State*> state = path->getStates();
+
+                for(int i = 0; i<state.size(); i++)
+                {
+                    ob::State* Jnt_config = state[i];
+                    double traj_point[motoman_arm_DOF];
+                    for(int j = 0; j<motoman_arm_DOF;j++)
+                    {
+                        traj_point[j] = Jnt_config->as<ob::RealVectorStateSpace::StateType>()->values[j];
+                    }
+                    optimized_trajectory.push_back(traj_point);
+                }
+
                 return true;
             }
             else
@@ -149,6 +167,13 @@ namespace optimize_planner
 
              return rt_state;
          }
+
+         bool Create_trajectory(boost::shared_ptr<og::PathGeometric> path_solution)
+         {
+            std::vector<ob::State*> states = path_solution->getStates();
+
+         }
+
          bool isStateValid(const ob::State* state)
          {
              // Moveit is needed here
@@ -159,6 +184,7 @@ namespace optimize_planner
              return (const void*)rot != (const void*)pos;
          }
 
+
     public:
          float planning_time;
          double goal_tolerance;
@@ -168,8 +194,11 @@ namespace optimize_planner
          std::vector<double> start_Config;
          std::vector<double> goal_Config;
 
-         ob::PathPtr path;
+         ob::PathPtr path_ptr;
+         boost::shared_ptr<og::PathGeometric> path;
          motoman_move_group m_robot_model;
+
+         std::vector<double*> optimized_trajectory;
     };
 
 }

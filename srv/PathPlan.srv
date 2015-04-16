@@ -4,7 +4,7 @@ geometry_msgs/Vector3 start
 geometry_msgs/Vector3 target
 float64 target_tolerance
 float64 probe_radius
-float64 p
+float64 cost_weight
 float64 time_limit
 uint8 RRTSTAR=0
 uint8 TRRT=1
