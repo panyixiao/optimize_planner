@@ -66,21 +66,21 @@ namespace optimize_planner
             if(group_name == "arm_right")
             {
                 kinematic_state->setJointGroupPositions(right_arm_joint_group,config_1);
-
+                kinematic_state->update();
                 position_1 = right_arm_group->getCurrentPose(right_arm_group->getEndEffector());
 
                 kinematic_state->setJointGroupPositions(right_arm_joint_group,config_2);
-
+                kinematic_state->update();
                 position_2 = right_arm_group->getCurrentPose(right_arm_group->getEndEffector());
             }
             else
             {
                 kinematic_state->setJointGroupPositions(left_arm_joint_group,config_1);
-
+                kinematic_state->update();
                 position_1 = left_arm_group->getCurrentPose(left_arm_group->getEndEffector());
 
                 kinematic_state->setJointGroupPositions(left_arm_joint_group,config_2);
-
+                kinematic_state->update();
                 position_2 = left_arm_group->getCurrentPose(left_arm_group->getEndEffector());
             }
 
