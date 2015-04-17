@@ -97,7 +97,7 @@ public:
         return pose_distance(position_1,position_2);
     }
 
-    bool execute_joint_trajectory(std::vector<double*> joint_trajectory,std::string group_name)
+    bool execute_joint_trajectory(std::vector< std::vector<double> > &joint_trajectory,std::string group_name)
     {
         double start_time = 0.5;
 
@@ -139,6 +139,7 @@ public:
             for(int j = 0; j<motoman_arm_DOF;j++)
             {
                 m_trajectory.points[i+1].positions[j] = joint_trajectory[i][j];
+                //std::cout<<"Point "<<i+1<<", Joint "<<j<<" config: "<<joint_trajectory[i][j]<<std::endl;
                 m_trajectory.points[i+1].velocities[j] = 0.0;
             }
 
@@ -174,7 +175,8 @@ public:
         geometry_msgs::PoseStamped ee_pos ;
         std::vector<std::string> JointNames;
         ros::NodeHandle node_handle ;
-        ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
+        //ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
+        ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("/visualization_marker",1);
 
         if( !marker_pub ) {
             ROS_INFO("Invalid Publisher !! ") ;
@@ -185,7 +187,7 @@ public:
         visualization_msgs::MarkerArray path ;
         std_msgs::ColorRGBA point_color;
         point_color.r = 1.0;
-        point_color.g = 0.0;
+        point_color.g = 1.0;
         point_color.b = 0.0;
         point_color.a = 1.0;
 
@@ -197,50 +199,60 @@ public:
         {
             JointNames = left_arm_group->getJoints();
         }
+        // There three customized joint added which is not bolongs to original model
+        JointNames.pop_back();
+        JointNames.pop_back();
+        JointNames.pop_back();
+
         std::vector<double> joint_pos = GetGroupConfig(group_name);
 
-        for( int i=0 ; i<traj.points.size() ; i++)
+        for( int i=0 ; i< traj.points.size() ; i++)
         {
             visualization_msgs::Marker point ;
+            std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
             for(int j = 0; j<motoman_arm_DOF;j++)
             {
-                joint_pos[j] = traj.points[i].positions[j] ;
+                joint_pos[j] = traj.points[i].positions[j];
+                //std::cout<<"Joint "<<j<<" Position"<<traj.points[i].positions[j]<<std::endl;
             }
 
             kinematic_state->setVariablePositions(JointNames,joint_pos);
             kinematic_state->update();
+
             if(group_name == "arm_right")
-                ee_pos = right_arm_group->getCurrentPose(right_arm_group->getEndEffector());
+                ee_pos = right_arm_group->getCurrentPose(right_arm_group->getEndEffectorLink());
             else
-                ee_pos = left_arm_group->getCurrentPose(left_arm_group->getEndEffector()) ;
+                ee_pos = left_arm_group->getCurrentPose(left_arm_group->getEndEffectorLink()) ;
 
-            point.header.frame_id = "optimize_planner" ;
-
+            //point.header.frame_id = "optimize_planner" ;
+            point.header.frame_id = "base_link";
+            point.header.stamp = ros::Time::now();
             point.ns = "path" ;
             point.id = i+1 ;
             point.type = visualization_msgs::Marker::CUBE_LIST ;
             point.action = visualization_msgs::Marker::ADD ;
-            point.lifetime = ros::Duration(0.0) ;
-            point.frame_locked = false ;
+            //point.lifetime = ros::Duration() ;
+            //point.frame_locked = false ;
             point.scale.x = 1 ;
             point.scale.y = 1 ;
             point.scale.z = 1 ;
-            point.pose.position.x = i ;
-            point.pose.position.y = 1 ;
-            point.pose.position.z = 1 ;
-            point.pose.orientation.x = 0 ;
-            point.pose.orientation.y = 0 ;
-            point.pose.orientation.z = 0 ;
-            point.pose.orientation.w = 1 ;
-            point.color = point_color ;
+            point.pose.position.x = ee_pos.pose.position.x ;
+            point.pose.position.y = ee_pos.pose.position.y ;
+            point.pose.position.z = ee_pos.pose.position.z ;
+            point.pose.orientation.x =ee_pos.pose.orientation.x ;
+            point.pose.orientation.y = ee_pos.pose.orientation.y ;
+            point.pose.orientation.z = ee_pos.pose.orientation.z ;
+            point.pose.orientation.w = ee_pos.pose.orientation.w ;
+            point.color = point_color;
 
+            std::cout<<"Marker Position: "<<"x: "<<point.pose.position.x<<"y: "<<point.pose.position.y<<"z: "<<point.pose.position.z<<std::endl;
+
+            marker_pub.publish(point);
             path.markers.push_back(point) ;
         }
 
-        marker_pub.publish(path) ;
-
+        //marker_pub.publish(path) ;
         ROS_INFO("Path Published !! ") ;
-
     }
 
 

@@ -43,6 +43,8 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
 
     m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
 
+    //m_planner->m_robot_model.display_traj(m_planner->optimized_trajectory,req.group_name);
+
     return true;
 }
 

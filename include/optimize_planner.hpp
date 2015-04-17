@@ -113,12 +113,15 @@ namespace optimize_planner
                 for(int i = 0; i<state.size(); i++)
                 {
                     ob::State* Jnt_config = state[i];
-                    double traj_point[motoman_arm_DOF];
+                    std::vector<double> jnt_config(motoman_arm_DOF,0);
+                    //double traj_point[motoman_arm_DOF];
+
                     for(int j = 0; j<motoman_arm_DOF;j++)
                     {
-                        traj_point[j] = Jnt_config->as<ob::RealVectorStateSpace::StateType>()->values[j];
+                        jnt_config[j] = Jnt_config->as<ob::RealVectorStateSpace::StateType>()->values[j];
+                        //std::cout<<"Point "<<i<<", Joint "<<j<<" config: "<<traj_point[j]<<std::endl;
                     }
-                    optimized_trajectory.push_back(traj_point);
+                    optimized_trajectory.push_back(jnt_config);
                 }
 
                 return true;
@@ -198,7 +201,7 @@ namespace optimize_planner
          boost::shared_ptr<og::PathGeometric> path;
          motoman_move_group m_robot_model;
 
-         std::vector<double*> optimized_trajectory;
+         std::vector< std::vector<double> > optimized_trajectory;
     };
 
 }
