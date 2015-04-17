@@ -75,26 +75,43 @@ public:
     {
         geometry_msgs::PoseStamped position_1;
         geometry_msgs::PoseStamped position_2;
+        Eigen::Affine3d ee_transformation;
 
         if(group_name == "arm_right")
         {
             kinematic_state->setJointGroupPositions(right_arm_joint_group,config_1);
             kinematic_state->update();
-            position_1 = right_arm_group->getCurrentPose(right_arm_group->getEndEffector());
+            ee_transformation = kinematic_state->getGlobalLinkTransform(right_arm_group->getEndEffectorLink());
+            position_1 = getTranslationPoseCoord(ee_transformation);
+
             kinematic_state->setJointGroupPositions(right_arm_joint_group,config_2);
             kinematic_state->update();
-            position_2 = right_arm_group->getCurrentPose(right_arm_group->getEndEffector());
+            ee_transformation = kinematic_state->getGlobalLinkTransform(right_arm_group->getEndEffectorLink());
+            position_2 = getTranslationPoseCoord(ee_transformation);
         }
         else
         {
             kinematic_state->setJointGroupPositions(left_arm_joint_group,config_1);
             kinematic_state->update();
-            position_1 = left_arm_group->getCurrentPose(left_arm_group->getEndEffector());
+            ee_transformation = kinematic_state->getGlobalLinkTransform(left_arm_group->getEndEffectorLink());
+            position_1 = getTranslationPoseCoord(ee_transformation);
+
             kinematic_state->setJointGroupPositions(left_arm_joint_group,config_2);
             kinematic_state->update();
-            position_2 = left_arm_group->getCurrentPose(left_arm_group->getEndEffector());
+            ee_transformation = kinematic_state->getGlobalLinkTransform(left_arm_group->getEndEffectorLink());
+            position_2 = getTranslationPoseCoord(ee_transformation);
         }
         return pose_distance(position_1,position_2);
+    }
+
+    geometry_msgs::PoseStamped getTranslationPoseCoord(Eigen::Affine3d& transform)
+    {
+        geometry_msgs::PoseStamped translation;
+        translation.pose.position.x = transform.matrix().data()[12];
+        translation.pose.position.y = transform.matrix().data()[13];
+        translation.pose.position.z = transform.matrix().data()[14];
+
+        return translation;
     }
 
     bool execute_joint_trajectory(std::vector< std::vector<double> > &joint_trajectory,std::string group_name)
@@ -102,18 +119,21 @@ public:
         double start_time = 0.5;
 
         std::vector<std::string> JointNames;
+        std::vector<std::string> arm_controller;
         if(group_name == "arm_right")
         {
             JointNames = right_arm_group->getJoints();
+            arm_controller.push_back("fake_arm_right_controller");
         }
         else
         {
             JointNames = left_arm_group->getJoints();
+            arm_controller.push_back("fake_arm_left_controller");
         }
         m_trajectory.joint_names.resize(motoman_arm_DOF);
         for(int k = 0; k< motoman_arm_DOF;k++)
         {
-            std::cout<<"Joint: "<<JointNames[k]<<std::endl;
+            //std::cout<<"Joint: "<<JointNames[k]<<std::endl;
             m_trajectory.joint_names[k] = JointNames[k];
         }
 
@@ -161,11 +181,12 @@ public:
 
         m_trajectory.header.stamp = ros::Time::now() + ros::Duration(start_time);
 
+        std::cout<<"Totally "<<m_trajectory.points.size()<<" points will be executed"<<std::endl;
         ROS_INFO("Sending Trajectory to joint_trajectory_action");
+        //traj_manager->pushAndExecute(m_trajectory);
 
-        //traj_manager->pushAndExecute(m_trajectory,group_name);
-        display_traj(m_trajectory,group_name) ;
-        //traj_manager->waitForExecution();
+        ROS_INFO("Trajectory Sended....");
+        display_traj(m_trajectory,group_name);
         return true;
     }
 
@@ -205,6 +226,7 @@ public:
         JointNames.pop_back();
 
         std::vector<double> joint_pos = GetGroupConfig(group_name);
+        Eigen::Affine3d ee_transformation;
 
         for( int i=0 ; i< traj.points.size() ; i++)
         {
@@ -218,11 +240,20 @@ public:
 
             kinematic_state->setVariablePositions(JointNames,joint_pos);
             kinematic_state->update();
-
             if(group_name == "arm_right")
-                ee_pos = right_arm_group->getCurrentPose(right_arm_group->getEndEffectorLink());
+            {
+                ee_transformation = kinematic_state->getGlobalLinkTransform(right_arm_group->getEndEffectorLink());
+            }
             else
-                ee_pos = left_arm_group->getCurrentPose(left_arm_group->getEndEffectorLink()) ;
+            {
+                ee_transformation = kinematic_state->getGlobalLinkTransform(left_arm_group->getEndEffectorLink());
+            }
+
+            // Get the translate column
+            ee_pos.pose.position.x = ee_transformation.matrix().data()[12];
+            ee_pos.pose.position.y = ee_transformation.matrix().data()[13];
+            ee_pos.pose.position.z = ee_transformation.matrix().data()[14];
+
 
             //point.header.frame_id = "optimize_planner" ;
             point.header.frame_id = "base_link";
@@ -246,7 +277,6 @@ public:
             point.color = point_color;
 
             std::cout<<"Marker Position: "<<"x: "<<point.pose.position.x<<"y: "<<point.pose.position.y<<"z: "<<point.pose.position.z<<std::endl;
-
             marker_pub.publish(point);
             path.markers.push_back(point) ;
         }

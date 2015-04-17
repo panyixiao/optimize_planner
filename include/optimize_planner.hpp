@@ -107,7 +107,6 @@ namespace optimize_planner
 
                 path = boost::static_pointer_cast<og::PathGeometric>(pdef->getSolutionPath());
                 path->interpolate(10);
-                //path->print(std::cout);
                 std::vector<ob::State*> state = path->getStates();
 
                 for(int i = 0; i<state.size(); i++)
@@ -123,6 +122,7 @@ namespace optimize_planner
                     }
                     optimized_trajectory.push_back(jnt_config);
                 }
+                path->print(std::cout);
 
                 return true;
             }
