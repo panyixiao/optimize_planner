@@ -21,6 +21,8 @@
 #include <moveit/collision_detection/world.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/collision_detection/allvalid/collision_world_allvalid.h>
+#include <moveit/collision_detection/collision_robot.h>
 
 // robot model
 //#include "optimize_planner/include/euclidian_se3_cost.hpp"
@@ -67,17 +69,22 @@ void dealocate_OptimiztionObjective_fn(ompl::base::OptimizationObjective* p)
 class ValidityChecker : public ob::StateValidityChecker
 {
 protected:
-
     std::unique_ptr<planning_scene::PlanningScene> planning_scene_ptr_;
+    std::unique_ptr<collision_detection::CollisionWorldAllValid> all_world_ptr_ ;
+    collision_detection::WorldPtr world_ptr = collision_detection::WorldPtr( new collision_detection::World()) ;
+    std::unique_ptr<robot_model_loader::RobotModelLoader> rmodel_;
+    boost::shared_ptr< collision_detection::CollisionRobot> crobot_;
+
 public:
     ValidityChecker(const ob::SpaceInformationPtr& si) :
         ob::StateValidityChecker(si)
     {
-        robot_model_loader::RobotModelLoader model_loader("robot_description");
+        rmodel_.reset(new robot_model_loader::RobotModelLoader("robot_description")) ;
         planning_scene_ptr_.reset();
-        planning_scene_ptr_ = std::unique_ptr<planning_scene::PlanningScene>(new planning_scene::PlanningScene(model_loader.getModel()));
-        //robot_model::RobotModelPtr r_model = model_loader.getModel();
-        //std::cout << "variable count " << r_model->getVariableCount() << std::endl ;
+        planning_scene_ptr_ = std::unique_ptr<planning_scene::PlanningScene>(new planning_scene::PlanningScene(rmodel_->getModel(),world_ptr));
+        all_world_ptr_.reset() ;
+        all_world_ptr_ = std::unique_ptr<collision_detection::CollisionWorldAllValid>(new collision_detection::CollisionWorldAllValid(world_ptr)) ;
+//        crobot_.reset(new collision_detection::CollisionRobot(rmodel_)) ;
 //        moveit::planning_interface::MoveGroup group("arm_left") ;
 //        moveit_msgs::CollisionObject c_object ;
 //        c_object.header.frame_id = group.getPlanningFrame() ;
@@ -108,26 +115,27 @@ public:
 //        moveit::planning_interface::PlanningSceneInterface p_s_interface ;
 //        p_s_interface.addCollisionObjects(c_objs) ;
 
-//        std::vector<std::string> objs ;
-        collision_detection::World objects ;
+        std::vector<std::string> objs ;
         Eigen::Affine3d rx = Eigen::Affine3d(Eigen::AngleAxisd(0,Eigen::Vector3d(1,0,0))) ;
-        Eigen::Affine3d ry = Eigen::Affine3d(Eigen::AngleAxisd(1,Eigen::Vector3d(0,1,0))) ;
-        Eigen::Affine3d rz = Eigen::Affine3d(Eigen::AngleAxisd(1,Eigen::Vector3d(0,0,1))) ;
+        Eigen::Affine3d ry = Eigen::Affine3d(Eigen::AngleAxisd(0,Eigen::Vector3d(0,1,0))) ;
+        Eigen::Affine3d rz = Eigen::Affine3d(Eigen::AngleAxisd(0,Eigen::Vector3d(0,0,1))) ;
         Eigen::Affine3d r = rz * ry * rx ;
-        Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(1.32,0,0))) ;
+        Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(0.885,-0.435,0))) ;
 
         Eigen::Affine3d pose = r*t ;
+        std::cout << pose.matrix() << std::endl ;
+
         shapes::ShapePtr world_cube ;
         world_cube.reset(new shapes::Box(0.87, 0.87, 1.77));
-        objects.addToObject("bin",world_cube,pose) ;
+        world_ptr->addToObject("bin",world_cube,pose) ;
 
-//        objs = objects.getObjectIds() ;
-//        std::cout << "objects present " << objs.size() << std::endl ;
-//        if(objs.size())
-//        {
-//            for( int i=0 ; i<10 ; i++)
-//               std::cout << objs[i] << std::endl ;
-//        }
+        objs = world_ptr->getObjectIds() ;
+        std::cout << "objects present " << objs.size() << std::endl ;
+        if(objs.size())
+        {
+            for( int i=0 ; i<world_ptr->size() ; i++)
+               std::cout << objs[i] << std::endl ;
+        }
         specs_.clearanceComputationType = ob::StateValidityCheckerSpecs::NONE;
         specs_.hasValidDirectionComputation = false;
     }
@@ -144,35 +152,42 @@ public:
         const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup("arm_left");
 
         variable_names[0] = "arm_left_joint_1_s" ;
-        JointValues[0] = sample_state->values[0] ;
+        JointValues[0] = 0.0 ; //sample_state->values[0] ;
 
         variable_names[1] = "arm_left_joint_2_l" ;
-        JointValues[1] = sample_state->values[1] ;
+        JointValues[1] = 1.57 ; //sample_state->values[1] ;
 
         variable_names[2] = "arm_left_joint_3_e" ;
-        JointValues[2] = sample_state->values[2] ;
+        JointValues[2] = 0.0 ; //sample_state->values[2] ;
 
         variable_names[3] = "arm_left_joint_4_u" ;
-        JointValues[3] = sample_state->values[3] ;
+        JointValues[3] = 0.0 ; //sample_state->values[3] ;
 
         variable_names[4] = "arm_left_joint_5_r" ;
-        JointValues[4] = sample_state->values[4] ;
+        JointValues[4] = 0.0 ; //sample_state->values[4] ;
 
         variable_names[5] = "arm_left_joint_6_b" ;
-        JointValues[5] = sample_state->values[5] ;
+        JointValues[5] = 0.0 ; //sample_state->values[5] ;
 
         variable_names[6] = "arm_left_joint_7_t" ;
-        JointValues[6] = sample_state->values[6] ;
+        JointValues[6] = 0.0 ; //sample_state->values[6] ;
 
         current_state.setVariablePositions(variable_names,JointValues) ;
         current_state.update() ;
+        Eigen::Affine3d endef = current_state.getGlobalLinkTransform("arm_left_link_7_t") ;
+        std::cout << endef.matrix() << std::endl ;
 
-        //std::cout << *(current_state.getJointPositions("arm_left_joint_2_l")) << std::endl ;
+        collision_detection::CollisionRequest req;
+        req.group_name = "left_arm" ;
+        collision_detection::CollisionResult  res;
+        all_world_ptr_->checkRobotCollision(req , res,*crobot_, current_state ) ;
 
         std::cout << "state valid  ? " << planning_scene_ptr_->isStateValid(current_state, "left_arm") << std::endl ;
-        std::cout << "state collid ? " << planning_scene_ptr_->isStateColliding(current_state,"left_arm") << std::endl ;
+//        std::cout << "state collid ? " << planning_scene_ptr_->isStateColliding(current_state,"left_arm") << std::endl ;
+        std::cout << "state collid ? " << res.collision << std::endl ;
         std::cout << "state bound  ? " << current_state.satisfiesBounds(model_group) << std::endl ;
         std::cout << "******************************" << std::endl ;
+//        planning_scene_ptr_->printKnownObjects(std::cout) ;
 
         if(planning_scene_ptr_->isStateValid(current_state, "left_arm") == 1
                 && current_state.satisfiesBounds(model_group) == 1
