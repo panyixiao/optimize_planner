@@ -206,11 +206,16 @@ public:
             ROS_INFO("Valid Publisher !! ") ;
 
         visualization_msgs::MarkerArray path ;
-        std_msgs::ColorRGBA point_color;
-        point_color.r = 1.0;
-        point_color.g = 1.0;
-        point_color.b = 0.0;
+        std_msgs::ColorRGBA point_color, line_color;
+        point_color.r = 1.0f;
+        point_color.g = 1.0f;
+        point_color.b = 0.0f;
         point_color.a = 1.0;
+
+        line_color.r = 1.0f;
+        line_color.g = 0.0f;
+        line_color.b = 0.0f;
+        line_color.a = 1.0;
 
         if(group_name == "arm_right")
         {
@@ -227,10 +232,12 @@ public:
 
         std::vector<double> joint_pos = GetGroupConfig(group_name);
         Eigen::Affine3d ee_transformation;
+        visualization_msgs::Marker point ;
+        visualization_msgs::Marker line ;
 
         for( int i=0 ; i< traj.points.size() ; i++)
         {
-            visualization_msgs::Marker point ;
+
             std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
             for(int j = 0; j<motoman_arm_DOF;j++)
             {
@@ -250,37 +257,58 @@ public:
             }
 
             // Get the translate column
-            ee_pos.pose.position.x = ee_transformation.matrix().data()[12];
-            ee_pos.pose.position.y = ee_transformation.matrix().data()[13];
-            ee_pos.pose.position.z = ee_transformation.matrix().data()[14];
+            geometry_msgs::Point p ;
+            p.x = ee_pos.pose.position.x = ee_transformation.matrix().data()[12];
+            p.y = ee_pos.pose.position.y = ee_transformation.matrix().data()[13];
+            p.z = ee_pos.pose.position.z = ee_transformation.matrix().data()[14];
 
 
             //point.header.frame_id = "optimize_planner" ;
             point.header.frame_id = "base_link";
+            line.header.frame_id = "base_link" ;
+
             point.header.stamp = ros::Time::now();
-            point.ns = "path" ;
+            line.header.stamp = ros::Time::now() ;
+
+            point.ns = "point" ;
             point.id = i+1 ;
+            line.ns = "path" ;
+            line.id = i+51 ;
+
             point.type = visualization_msgs::Marker::CUBE_LIST ;
             point.action = visualization_msgs::Marker::ADD ;
+            line.type = visualization_msgs::Marker::LINE_STRIP ;
+            line.action = visualization_msgs::Marker::ADD ;
+
             //point.lifetime = ros::Duration() ;
             //point.frame_locked = false ;
-            point.scale.x = 1 ;
-            point.scale.y = 1 ;
-            point.scale.z = 1 ;
-            point.pose.position.x = ee_pos.pose.position.x ;
-            point.pose.position.y = ee_pos.pose.position.y ;
-            point.pose.position.z = ee_pos.pose.position.z ;
-            point.pose.orientation.x =ee_pos.pose.orientation.x ;
-            point.pose.orientation.y = ee_pos.pose.orientation.y ;
-            point.pose.orientation.z = ee_pos.pose.orientation.z ;
-            point.pose.orientation.w = ee_pos.pose.orientation.w ;
+
+            point.scale.x = 0.04 ;
+            point.scale.y = 0.04 ;
+            point.scale.z = 0.04 ;
+
+            line.scale.x = 0.02 ;
+            line.scale.y = 0.02 ;
+            line.scale.z = 0.02 ;
+
+            //point.pose.position.x = ee_pos.pose.position.x ;
+            //point.pose.position.y = ee_pos.pose.position.y ;
+            //point.pose.position.z = ee_pos.pose.position.z ;
+            //point.pose.orientation.x =ee_pos.pose.orientation.x ;
+            //point.pose.orientation.y = ee_pos.pose.orientation.y ;
+            //point.pose.orientation.z = ee_pos.pose.orientation.z ;
+            //point.pose.orientation.w = ee_pos.pose.orientation.w ;
             point.color = point_color;
+            line.color = line_color ;
 
             std::cout<<"Marker Position: "<<"x: "<<point.pose.position.x<<"y: "<<point.pose.position.y<<"z: "<<point.pose.position.z<<std::endl;
-            marker_pub.publish(point);
-            path.markers.push_back(point) ;
+            //marker_pub.publish(point);
+            //path.markers.push_back(point) ;
+            point.points.push_back(p);
+            line.points.push_back(p);
         }
-
+        marker_pub.publish(point) ;
+        marker_pub.publish(line) ;
         //marker_pub.publish(path) ;
         ROS_INFO("Path Published !! ") ;
     }
