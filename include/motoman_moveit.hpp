@@ -280,7 +280,8 @@ public:
             line.type = visualization_msgs::Marker::LINE_STRIP ;
             line.action = visualization_msgs::Marker::ADD ;
 
-            //point.lifetime = ros::Duration() ;
+            point.lifetime = ros::Duration(10) ;
+            line.lifetime = ros::Duration(10) ;
             //point.frame_locked = false ;
 
             point.scale.x = 0.04 ;
@@ -301,7 +302,7 @@ public:
             point.color = point_color;
             line.color = line_color ;
 
-            std::cout<<"Marker Position: "<<"x: "<<point.pose.position.x<<"y: "<<point.pose.position.y<<"z: "<<point.pose.position.z<<std::endl;
+            std::cout<<"Marker Position: "<<"x: "<<p.x<<"y: "<<p.y<<"z: "<<p.z<<std::endl;
             //marker_pub.publish(point);
             //path.markers.push_back(point) ;
             point.points.push_back(p);

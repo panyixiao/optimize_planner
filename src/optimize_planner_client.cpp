@@ -33,6 +33,15 @@ int main(int argc, char **argv)
     float Jnt_Val_b =  1.3527307468837322;
     float Jnt_Val_t =  1.6504463451922884;
 
+//    float Jnt_Val_s = 0;
+//    float Jnt_Val_l = 1.5;
+//    float Jnt_Val_e = 0;
+//    float Jnt_Val_u = 0;
+//    float Jnt_Val_r = 0;
+//    float Jnt_Val_b = 0;
+//    float Jnt_Val_t = 0;
+
+
     srv.request.target_config.push_back(Jnt_Val_s);
     srv.request.target_config.push_back(Jnt_Val_l);
     srv.request.target_config.push_back(Jnt_Val_e);
@@ -41,7 +50,8 @@ int main(int argc, char **argv)
     srv.request.target_config.push_back(Jnt_Val_b);
     srv.request.target_config.push_back(Jnt_Val_t);
 
-    srv.request.cost_weight = 0.7;
+    srv.request.cost_weight = 0.7;    
+
 
     //Eigen::Affine3d start_pose = kinematic_state->getGlobalLinkTransform(leftArm->getEndEffectorName());
     //move_group_interface::MoveGroup right_arm_group("arm_right");
