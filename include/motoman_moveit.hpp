@@ -40,6 +40,10 @@ class motoman_move_group
 public:
     motoman_move_group()
     {
+        marker_pub_.reset() ;
+        marker_pub_ = boost::shared_ptr<ros::Publisher>(new ros::Publisher) ;
+        *marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker",1) ;
+
         robot_loader = new robot_model_loader::RobotModelLoader("robot_description");
         kinematic_model = robot_loader->getModel();
         kinematic_state = new robot_state::RobotState(kinematic_model);
@@ -195,15 +199,15 @@ public:
         ROS_INFO("Displaying Trajectory") ;
         geometry_msgs::PoseStamped ee_pos ;
         std::vector<std::string> JointNames;
-        ros::NodeHandle node_handle ;
+        //ros::NodeHandle node_handle ;
         //ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
-        ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("/visualization_marker",1);
+        //ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("/visualization_marker",1);
 
-        if( !marker_pub ) {
-            ROS_INFO("Invalid Publisher !! ") ;
-        }
-        else
-            ROS_INFO("Valid Publisher !! ") ;
+        //if( !marker_pub ) {
+        //    ROS_INFO("Invalid Publisher !! ") ;
+        //}
+        //else
+        //    ROS_INFO("Valid Publisher !! ") ;
 
         visualization_msgs::MarkerArray path ;
         std_msgs::ColorRGBA point_color, line_color;
@@ -280,8 +284,8 @@ public:
             line.type = visualization_msgs::Marker::LINE_STRIP ;
             line.action = visualization_msgs::Marker::ADD ;
 
-            point.lifetime = ros::Duration(10) ;
-            line.lifetime = ros::Duration(10) ;
+            point.lifetime = ros::Duration() ;
+            line.lifetime = ros::Duration() ;
             //point.frame_locked = false ;
 
             point.scale.x = 0.04 ;
@@ -308,8 +312,10 @@ public:
             point.points.push_back(p);
             line.points.push_back(p);
         }
-        marker_pub.publish(point) ;
-        marker_pub.publish(line) ;
+        marker_pub_->publish(point) ;
+        marker_pub_->publish(line) ;
+        //marker_pub.publish(point) ;
+        //marker_pub.publish(line) ;
         //marker_pub.publish(path) ;
         ROS_INFO("Path Published !! ") ;
     }
@@ -338,6 +344,7 @@ private:
 
     traj_man::TrajectoryExecutionManager* traj_manager;
     trajectory_msgs::JointTrajectory m_trajectory;
-
+    ros::NodeHandle nh;
+    boost::shared_ptr<ros::Publisher> marker_pub_ ;
 };
 }
