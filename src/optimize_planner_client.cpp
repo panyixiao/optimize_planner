@@ -33,6 +33,8 @@ int main(int argc, char **argv)
     float Jnt_Val_r = -2.9914519460193256;
     float Jnt_Val_b =  1.3527307468837322;
     float Jnt_Val_t =  1.6504463451922884;
+
+
     srv.request.target_config.push_back(Jnt_Val_s);
     srv.request.target_config.push_back(Jnt_Val_l);
     srv.request.target_config.push_back(Jnt_Val_e);
