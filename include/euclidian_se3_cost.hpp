@@ -31,7 +31,7 @@ namespace optimize_planner
             std::vector<double> Jnt_config_1 = GetJointGroupValues(s1);
             std::vector<double> Jnt_config_2 = GetJointGroupValues(s2);
 
-            double scale = planning_group->get_euclidean_distance(group_name,Jnt_config_1,Jnt_config_2);
+            double euclidean_dis = planning_group->get_euclidean_distance(group_name,Jnt_config_1,Jnt_config_2);
 
             //Eigen::Quaternion
             Eigen::Affine3d trans_1 = planning_group->get_ee_affine3dTransformation(group_name,Jnt_config_1);
@@ -40,9 +40,9 @@ namespace optimize_planner
             Eigen::Affine3d trans_2 = planning_group->get_ee_affine3dTransformation(group_name,Jnt_config_2);
             Eigen::Quaterniond rotation_2(trans_2.rotation());
 
-            double quat_dis = get_quaternion_distance(rotation_1,rotation_2);
+            double angle_diff = get_quaternion_distance(rotation_1,rotation_2);
 
-            motion_cost = (scale+1)*quat_dis;
+            motion_cost = euclidean_dis + 4*angle_diff;
 
             return ompl::base::Cost(motion_cost);
         }
@@ -58,7 +58,7 @@ namespace optimize_planner
             // When q1 == q2 the distance should be 0
             // When q1 is pointing the opposite direction to q2, the distance should be 1
 
-            distance = 1 - inner_product*inner_product;
+            distance = acos(2*inner_product*inner_product - 1);
 
             return distance;
         }
