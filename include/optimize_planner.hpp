@@ -51,7 +51,7 @@ namespace og = ompl::geometric;
 
 void dealocate_StateValidityChecker_fn(ompl::base::StateValidityChecker* p)
 {
-    std::cout << ">>>>>>>>>>>>>>>Deallocate>>>>>>>>>>>>" << std::endl ;
+    //std::cout << ">>>>>>>>>>>>>>>Deallocate>>>>>>>>>>>>" << std::endl ;
     UNUSED(p);
 }
 
@@ -112,19 +112,11 @@ public:
         Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(1.28,0,0.885))) ;
 
         Eigen::Affine3d pose = r*t ;
-//        std::cout << pose.matrix() << std::endl ;
 
         shapes::ShapePtr world_cube ;
         world_cube.reset(new shapes::Box(0.87, 0.87, 1.77));
         cworld_->getWorld()->addToObject("bin",world_cube,pose) ;
 
-//        objs = cworld_->getWorld()->getObjectIds() ;
-//        std::cout << "objects present " << objs.size() << std::endl ;
-//        if(objs.size())
-//        {
-//            for( int i=0 ; i<cworld_->getWorld()->size() ; i++)
-//                std::cout << objs[i] << std::endl ;
-//        }
         specs_.clearanceComputationType = ob::StateValidityCheckerSpecs::NONE;
         specs_.hasValidDirectionComputation = false;
     }
@@ -164,42 +156,19 @@ public:
         current_state.setVariablePositions(variable_names,JointValues) ;
         current_state.update() ;
 
-//        /* loop at 1 Hz */
-//        ros::Rate loop_rate(1);
-
-//        moveit_msgs::DisplayRobotState msg;
-//        robot_state::robotStateToRobotStateMsg(current_state, msg.state);
-
-//        /* send the message to the RobotState display */
-//        state_pub_->publish( msg );
-
-//        ros::spinOnce();
-//        loop_rate.sleep();
-
-//        Eigen::Affine3d endef = current_state.getGlobalLinkTransform("arm_left_link_7_t") ;
-//        std::cout << endef.matrix() << std::endl ;
-
         collision_detection::CollisionRequest req;
         req.group_name = "left_arm" ;
         collision_detection::CollisionResult  res;
         all_world_ptr_->checkRobotCollision(req , res,*crobot_, current_state , *acm_ ) ;
 
-//        std::cout << "state valid  ? " << planning_scene_ptr_->isStateValid(current_state, "left_arm") << std::endl ;
-//        std::cout << "state collid ? " << res.collision << std::endl ;
-//        std::cout << "state bound  ? " << current_state.satisfiesBounds(model_group) << std::endl ;
-//        std::cout << "******************************" << std::endl ;
-//        planning_scene_ptr_->printKnownObjects(std::cout) ;
-
-        if(planning_scene_ptr_->isStateValid(current_state, "left_arm") == 1
-                && current_state.satisfiesBounds(model_group) == 1
-                && planning_scene_ptr_->isStateColliding(current_state,"left_arm") == 0)
+        if(planning_scene_ptr_->isStateValid(current_state, "left_arm") == 1 &&
+           current_state.satisfiesBounds(model_group) == 1 &&
+           planning_scene_ptr_->isStateColliding(current_state,"left_arm") == 0)
         {
-            //            std::cout << ">>>>>>>>>>>>>>>Valid State>>>>>>>>>>>>" << std::endl ;
             return true  ;
         }
         else
         {
-            //            std::cout << ">>>>>>>>>>>>>>>Invalid State>>>>>>>>>>>>" << std::endl ;
             return false  ;
         }
     }

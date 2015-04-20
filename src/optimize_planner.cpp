@@ -43,15 +43,19 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
     m_planner->cost_bias = req.cost_weight;
 
     // Start Planning
-    m_planner->start_planning(req.group_name);
+    if(m_planner->start_planning(req.group_name))
+    {
+        res.total_cost = m_planner->path_cost;
+        res.total_length = m_planner->path_length;
+        // Generate & Execute/Display a trajectory
+        m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
 
-    res.total_cost = m_planner->path_cost;
-    res.total_length = m_planner->path_length;
+        return true;
+    }
 
-    // Generate & Execute/Display a trajectory
-    m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
+    return false;
 
-    return true;
+
 }
 
 int main(int argc, char **argv)
