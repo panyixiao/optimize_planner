@@ -320,11 +320,7 @@ namespace optimize_planner
              return rt_state;
          }
 
-         bool Create_trajectory(boost::shared_ptr<og::PathGeometric> path_solution)
-         {
-            std::vector<ob::State*> states = path_solution->getStates();
 
-         }
 
 //         bool isStateValid(const ob::State* state)
 //         {

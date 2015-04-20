@@ -47,6 +47,9 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
     {
         res.total_cost = m_planner->path_cost;
         res.total_length = m_planner->path_length;
+
+        // Make a different display
+        m_planner->m_robot_model.display_color_scale = req.cost_weight;
         // Generate & Execute/Display a trajectory
         m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
 

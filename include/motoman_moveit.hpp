@@ -53,6 +53,7 @@ public:
         right_arm_group = new move_group_interface::MoveGroup("arm_right");
         left_arm_group = new move_group_interface::MoveGroup("arm_left");
 
+        display_color_scale = 0.0;
         //traj_manager = new traj_man::TrajectoryExecutionManager(kinematic_model);
     }
 
@@ -214,7 +215,7 @@ public:
         return true;
     }
 
-    void display_traj(trajectory_msgs::JointTrajectory traj , std::string group_name )
+    void display_traj(trajectory_msgs::JointTrajectory traj , std::string group_name)
     {
         ROS_INFO("Displaying Trajectory") ;
         geometry_msgs::PoseStamped ee_pos ;
@@ -236,8 +237,8 @@ public:
         point_color.b = 0.0f;
         point_color.a = 1.0;
 
-        line_color.r = 1.0f;
-        line_color.g = 0.0f;
+        line_color.r = float(1 - display_color_scale);
+        line_color.g = float(display_color_scale);
         line_color.b = 0.0f;
         line_color.a = 1.0;
 
@@ -337,6 +338,8 @@ private:
 public:
     move_group_interface::MoveGroup* right_arm_group;
     move_group_interface::MoveGroup* left_arm_group;
+
+    double display_color_scale;
 
 private:
     robot_model_loader::RobotModelLoader* robot_loader;
