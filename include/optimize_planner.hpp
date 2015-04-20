@@ -85,7 +85,8 @@ protected:
     boost::shared_ptr<collision_detection::CollisionWorld> cworld_;
     std::unique_ptr<collision_detection::CollisionWorldAllValid> all_world_ptr_ ;
     collision_detection::AllowedCollisionMatrixPtr acm_ ;
-
+    ros::NodeHandle nh;
+    boost::shared_ptr<ros::Publisher> state_pub_ ;
 
 public:
     ValidityChecker(const ob::SpaceInformationPtr& si) :
@@ -107,7 +108,11 @@ public:
         all_world_ptr_ = std::unique_ptr<collision_detection::CollisionWorldAllValid>(new collision_detection::CollisionWorldAllValid(cworld_->getWorld())) ;
 
         acm_.reset(new collision_detection::AllowedCollisionMatrix(rmodel_->getModel()->getLinkModelNames(),true)) ;
-        std::cout << acm_->hasEntry("hand_left_palm") << std::endl ;
+        //std::cout << acm_->hasEntry("hand_left_palm") << std::endl ;
+
+        state_pub_.reset() ;
+        state_pub_ = boost::shared_ptr<ros::Publisher>(new ros::Publisher) ;
+        *state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("display_robot_state",1) ;
 
         //        //world_.reset(new collision_detection::CollisionWorldFCL() ) ;
         //        rmodel.reset(new robot_model_loader::RobotModelLoader("robot_description")) ;
@@ -152,7 +157,7 @@ public:
         Eigen::Affine3d ry = Eigen::Affine3d(Eigen::AngleAxisd(0,Eigen::Vector3d(0,1,0))) ;
         Eigen::Affine3d rz = Eigen::Affine3d(Eigen::AngleAxisd(0,Eigen::Vector3d(0,0,1))) ;
         Eigen::Affine3d r = rz * ry * rx ;
-        Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(1.4,0,0))) ;
+        Eigen::Affine3d t(Eigen::Translation3d(Eigen::Vector3d(1.28,0,0.885))) ;
 
         Eigen::Affine3d pose = r*t ;
         std::cout << pose.matrix() << std::endl ;
@@ -184,48 +189,40 @@ public:
         const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup("arm_left");
 
         variable_names[0] = "arm_left_joint_1_s" ;
-        JointValues[0] = 0.0 ; //sample_state->values[0] ;
+        JointValues[0] = sample_state->values[0] ;
 
         variable_names[1] = "arm_left_joint_2_l" ;
-        JointValues[1] = 1.57 ; //sample_state->values[1] ;
+        JointValues[1] = sample_state->values[1] ;
 
         variable_names[2] = "arm_left_joint_3_e" ;
-        JointValues[2] = 0.0 ; //sample_state->values[2] ;
+        JointValues[2] = sample_state->values[2] ;
 
         variable_names[3] = "arm_left_joint_4_u" ;
-        JointValues[3] = 0.0 ; //sample_state->values[3] ;
+        JointValues[3] = sample_state->values[3] ;
 
         variable_names[4] = "arm_left_joint_5_r" ;
-        JointValues[4] = 0.0 ; //sample_state->values[4] ;
+        JointValues[4] = sample_state->values[4] ;
 
         variable_names[5] = "arm_left_joint_6_b" ;
-        JointValues[5] = 0.0 ; //sample_state->values[5] ;
+        JointValues[5] = sample_state->values[5] ;
 
         variable_names[6] = "arm_left_joint_7_t" ;
-        JointValues[6] = 0.0 ; //sample_state->values[6] ;
+        JointValues[6] = sample_state->values[6] ;
 
         current_state.setVariablePositions(variable_names,JointValues) ;
         current_state.update() ;
-//        ros::NodeHandle nh;
-//        ros::Publisher robot_state_publisher = nh.advertise<moveit_msgs::DisplayRobotState>( "display_robot_state", 1 );
 
-//        if( !robot_state_publisher ) {
-//                    ROS_INFO("Invalid Publisher !! ") ;
-//                }
-//                else
-//                    ROS_INFO("Valid Publisher !! ") ;
+        /* loop at 1 Hz */
+        ros::Rate loop_rate(1);
 
-//        /* loop at 1 Hz */
-//        ros::Rate loop_rate(1);
+        moveit_msgs::DisplayRobotState msg;
+        robot_state::robotStateToRobotStateMsg(current_state, msg.state);
 
-//        moveit_msgs::DisplayRobotState msg;
-//        robot_state::robotStateToRobotStateMsg(current_state, msg.state);
+        /* send the message to the RobotState display */
+        state_pub_->publish( msg );
 
-//        /* send the message to the RobotState display */
-//        robot_state_publisher.publish( msg );
-
-//        ros::spinOnce();
-//        loop_rate.sleep();
+        ros::spinOnce();
+        loop_rate.sleep();
 
         Eigen::Affine3d endef = current_state.getGlobalLinkTransform("arm_left_link_7_t") ;
         std::cout << endef.matrix() << std::endl ;
