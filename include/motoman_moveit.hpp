@@ -75,7 +75,7 @@ public:
         return JointValues;
     }
 
-    double get_ee_distance(std::string group_name,std::vector<double>& config_1, std::vector<double>& config_2)
+    double get_euclidean_distance(std::string group_name,std::vector<double>& config_1, std::vector<double>& config_2)
     {
         geometry_msgs::PoseStamped position_1;
         geometry_msgs::PoseStamped position_2;
@@ -108,6 +108,26 @@ public:
         return pose_distance(position_1,position_2);
     }
 
+    Eigen::Affine3d get_ee_affine3dTransformation(std::string group_name,std::vector<double>& config)
+    {
+        Eigen::Affine3d transform_matrix;
+
+        if(group_name == "arm_right")
+        {
+            kinematic_state->setJointGroupPositions(right_arm_joint_group,config);
+            kinematic_state->update();
+            transform_matrix = kinematic_state->getGlobalLinkTransform(right_arm_group->getEndEffectorLink());
+        }
+        else
+        {
+            kinematic_state->setJointGroupPositions(left_arm_joint_group,config);
+            kinematic_state->update();
+            transform_matrix = kinematic_state->getGlobalLinkTransform(left_arm_group->getEndEffectorLink());
+        }
+
+        return transform_matrix;
+
+    }
     geometry_msgs::PoseStamped getTranslationPoseCoord(Eigen::Affine3d& transform)
     {
         geometry_msgs::PoseStamped translation;
@@ -241,12 +261,9 @@ public:
 
         for( int i=0 ; i< traj.points.size() ; i++)
         {
-
-            std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
             for(int j = 0; j<motoman_arm_DOF;j++)
             {
                 joint_pos[j] = traj.points[i].positions[j];
-                //std::cout<<"Joint "<<j<<" Position"<<traj.points[i].positions[j]<<std::endl;
             }
 
             kinematic_state->setVariablePositions(JointNames,joint_pos);
@@ -259,7 +276,6 @@ public:
             {
                 ee_transformation = kinematic_state->getGlobalLinkTransform(left_arm_group->getEndEffectorLink());
             }
-
             // Get the translate column
             geometry_msgs::Point p ;
             p.x = ee_pos.pose.position.x = ee_transformation.matrix().data()[12];
@@ -279,44 +295,32 @@ public:
             line.ns = "path" ;
             line.id = i+51 ;
 
-            point.type = visualization_msgs::Marker::CUBE_LIST ;
+            point.type = visualization_msgs::Marker::SPHERE_LIST ;
             point.action = visualization_msgs::Marker::ADD ;
             line.type = visualization_msgs::Marker::LINE_STRIP ;
             line.action = visualization_msgs::Marker::ADD ;
 
             point.lifetime = ros::Duration() ;
             line.lifetime = ros::Duration() ;
-            //point.frame_locked = false ;
 
-            point.scale.x = 0.04 ;
-            point.scale.y = 0.04 ;
-            point.scale.z = 0.04 ;
+            point.scale.x = 0.02 ;
+            point.scale.y = 0.02 ;
+            point.scale.z = 0.02 ;
 
             line.scale.x = 0.02 ;
             line.scale.y = 0.02 ;
             line.scale.z = 0.02 ;
 
-            //point.pose.position.x = ee_pos.pose.position.x ;
-            //point.pose.position.y = ee_pos.pose.position.y ;
-            //point.pose.position.z = ee_pos.pose.position.z ;
-            //point.pose.orientation.x =ee_pos.pose.orientation.x ;
-            //point.pose.orientation.y = ee_pos.pose.orientation.y ;
-            //point.pose.orientation.z = ee_pos.pose.orientation.z ;
-            //point.pose.orientation.w = ee_pos.pose.orientation.w ;
             point.color = point_color;
             line.color = line_color ;
 
-            std::cout<<"Marker Position: "<<"x: "<<p.x<<"y: "<<p.y<<"z: "<<p.z<<std::endl;
-            //marker_pub.publish(point);
-            //path.markers.push_back(point) ;
+            //std::cout<<"Marker Position: "<<"x: "<<p.x<<"y: "<<p.y<<"z: "<<p.z<<std::endl;
             point.points.push_back(p);
             line.points.push_back(p);
         }
-        marker_pub_->publish(point) ;
-        marker_pub_->publish(line) ;
-        //marker_pub.publish(point) ;
-        //marker_pub.publish(line) ;
-        //marker_pub.publish(path) ;
+        marker_pub_->publish(point);
+        marker_pub_->publish(line);
+
         ROS_INFO("Path Published !! ") ;
     }
 
@@ -344,6 +348,7 @@ private:
 
     traj_man::TrajectoryExecutionManager* traj_manager;
     trajectory_msgs::JointTrajectory m_trajectory;
+
     ros::NodeHandle nh;
     boost::shared_ptr<ros::Publisher> marker_pub_ ;
 };

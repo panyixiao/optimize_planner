@@ -10,6 +10,8 @@
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/move_group_interface/move_group.h>
 
+#include <sstream>
+
 
 using namespace move_group_interface;
 
@@ -23,7 +25,6 @@ int main(int argc, char **argv)
 
     srv.request.group_name = "arm_left";
 
-
     // -0.3772088970063918, -1.3143374665077188, 1.3055896989571494, -1.2431863366129394, -2.9914519460193256, 1.3527307468837322, 1.6504463451922884
     float Jnt_Val_s = -0.3772088970063918;
     float Jnt_Val_l = -1.3143374665077188;
@@ -32,16 +33,6 @@ int main(int argc, char **argv)
     float Jnt_Val_r = -2.9914519460193256;
     float Jnt_Val_b =  1.3527307468837322;
     float Jnt_Val_t =  1.6504463451922884;
-
-//    float Jnt_Val_s = 0;
-//    float Jnt_Val_l = 1.5;
-//    float Jnt_Val_e = 0;
-//    float Jnt_Val_u = 0;
-//    float Jnt_Val_r = 0;
-//    float Jnt_Val_b = 0;
-//    float Jnt_Val_t = 0;
-
-
     srv.request.target_config.push_back(Jnt_Val_s);
     srv.request.target_config.push_back(Jnt_Val_l);
     srv.request.target_config.push_back(Jnt_Val_e);
@@ -50,44 +41,38 @@ int main(int argc, char **argv)
     srv.request.target_config.push_back(Jnt_Val_b);
     srv.request.target_config.push_back(Jnt_Val_t);
 
-    srv.request.cost_weight = 0.7;    
+    double m_time_limit = 10;
+    double m_cost_weight = 0.7;
 
+    if(argc>1)
+    {
+        //std::cout<<"Assigning planning time.."<<std::endl;
+        std::istringstream iss(argv[1]);
+        iss>>m_time_limit;
+    }
+    if(argc>2)
+    {
+        //std::cout<<"Assigning Cost weight.."<<std::endl;
+        std::istringstream iss(argv[2]);
+        iss>>m_cost_weight;
+        if(m_cost_weight>1||m_cost_weight<0)
+        {
+            m_cost_weight = 0.5;
+        }
+    }
 
-    //Eigen::Affine3d start_pose = kinematic_state->getGlobalLinkTransform(leftArm->getEndEffectorName());
-    //move_group_interface::MoveGroup right_arm_group("arm_right");
-    //move_group_interface::MoveGroup left_arm_group("arm_left");
+    std::cout<<"Planning Time: "<< m_time_limit;
+    std::cout<<" | Cost Weight: "<<m_cost_weight<<std::endl;
 
-    //geometry_msgs::PoseStamped left_ee_pose = left_arm_group.getCurrentPose(left_arm_group.getEndEffector());
-
-    //srv.request.start.position.x = left_ee_pose.pose.position.x;
-    //srv.request.start.position.y = left_ee_pose.pose.position.y;
-    //srv.request.start.position.z = left_ee_pose.pose.position.z;
-    //srv.request.start.orientation.x  =left_ee_pose.pose.orientation.x;
-    //srv.request.start.orientation.y  =left_ee_pose.pose.orientation.y;
-    //srv.request.start.orientation.z  =left_ee_pose.pose.orientation.z;
-    //srv.request.start.orientation.w  =left_ee_pose.pose.orientation.w;
-
-    //ROS_INFO("Start Postion: x = %f, y = %f, z = %f",srv.request.start.position.x, srv.request.start.position.y, srv.request.start.position.z);
-
-    /*srv.request.target.x = 0.47674;
-    srv.request.target.y = 0.00001;
-    srv.request.target.z = 0.94136;
-
-    srv.request.target.x = 0.2;
-    srv.request.target.y = 0.2;
-    srv.request.target.z = 0.2;
-
-    srv.request.time_limit = 10;
-
-    srv.request.p = 0.5;
-    srv.request.planner_type = deformable_ompl::PlanPath::Request::RRTSTAR;
-    srv.request.target_tolerance = 0.01;*/
+    srv.request.time_limit = m_time_limit;
+    srv.request.cost_weight = m_cost_weight;
 
     if(Client.call(srv))
     {
-        ROS_INFO("Found! Test Complete!");
-        //ROS_INFO("Total Length is: %f", srv.response.total_length);
-        //ROS_INFO("Total Cost is: %f", srv.response.total_cost);
+        //ROS_INFO("Found! Test Complete!");
+
+        std::cout<<"Total Length is: "<< srv.response.total_length;
+        std::cout<<" | Total Cost is: "<<srv.response.total_cost<<std::endl;
     }
     else
     {

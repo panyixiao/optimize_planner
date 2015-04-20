@@ -42,11 +42,12 @@ namespace optimize_planner
             planning_time = 10;
             goal_tolerance = 0.01;
             cost_bias = 0.1;
-            planner_choice = RRT_STAR;
          }
 
         bool start_planning(std::string group_name)
         {
+            std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
+
             ob::StateSpacePtr Joint_space(new ob::RealVectorStateSpace(motoman_arm_DOF));
             ob::RealVectorBounds Joint_bounds(motoman_arm_DOF);
 
@@ -98,31 +99,29 @@ namespace optimize_planner
                 std::cout<<"Find Path"<<std::endl;
                 // Generate the Path
                 optimized_trajectory.clear();
-                /*path = pdef->getSolutionPath();
-                path->print(std::cout);
-                std::cout<<"Total Cost: "<<path->cost(cost_fn).value()<<std::endl;
-                std::cout<<"Total Length:"<<path->length()<<std::endl;
-                std::cout<<"Distance to goal: "<<pdef->getSolutionDifference()<<std::endl;
-                */
 
                 path = boost::static_pointer_cast<og::PathGeometric>(pdef->getSolutionPath());
-                path->interpolate(10);
+
+                int interpolate_num = 5*round(path->length());
+
+                path->interpolate(interpolate_num);
+
                 std::vector<ob::State*> state = path->getStates();
 
                 for(int i = 0; i<state.size(); i++)
                 {
                     ob::State* Jnt_config = state[i];
                     std::vector<double> jnt_config(motoman_arm_DOF,0);
-                    //double traj_point[motoman_arm_DOF];
 
                     for(int j = 0; j<motoman_arm_DOF;j++)
                     {
                         jnt_config[j] = Jnt_config->as<ob::RealVectorStateSpace::StateType>()->values[j];
-                        //std::cout<<"Point "<<i<<", Joint "<<j<<" config: "<<traj_point[j]<<std::endl;
                     }
                     optimized_trajectory.push_back(jnt_config);
                 }
-                path->print(std::cout);
+
+                path_length = calculate_trajectory_euclidean_length(group_name);
+                path_cost = path->cost(cost_fn).value();
 
                 return true;
             }
@@ -187,21 +186,47 @@ namespace optimize_planner
              return (const void*)rot != (const void*)pos;
          }
 
+         double calculate_trajectory_euclidean_length(std::string& group_name)
+         {
+            double length = 0.0;
+            if(optimized_trajectory.empty())
+            {
+                ROS_INFO("Empty Trajectory!");
+                return length;
+            }
+            int i = 0;
+            int j = i+1;
+
+            for( ;j<optimized_trajectory.size(); i++,j++)
+            {
+                std::vector<double> config_1 = optimized_trajectory[i];
+                std::vector<double> config_2 = optimized_trajectory[j];
+
+                double temp = m_robot_model.get_euclidean_distance(group_name,config_1,config_2);
+
+                length += temp;
+            }
+
+            return length;
+         }
 
     public:
+         double path_length;
+         double path_cost;
+
          float planning_time;
          double goal_tolerance;
-         planner_type planner_choice;
          float cost_bias;
+
+         motoman_move_group m_robot_model;
 
          std::vector<double> start_Config;
          std::vector<double> goal_Config;
 
-         ob::PathPtr path_ptr;
-         boost::shared_ptr<og::PathGeometric> path;
-         motoman_move_group m_robot_model;
-
          std::vector< std::vector<double> > optimized_trajectory;
+
+    private:
+         boost::shared_ptr<og::PathGeometric> path;
     };
 
 }

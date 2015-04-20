@@ -17,11 +17,10 @@ optimize_planner::motoman_planner* m_planner;
 
 bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::Response &res)
 {
-    // Using Current configuration as start
+    // Assign Start & Goal Configuration
     m_planner->start_Config.clear();
     m_planner->start_Config = m_planner->m_robot_model.GetGroupConfig(req.group_name);
-
-    // Assign Goal Configuration
+    //
     m_planner->goal_Config.clear();
     if(req.target_config.empty())
     {
@@ -34,16 +33,23 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
         double JntValue = req.target_config[i];
         temp_target_config.push_back(JntValue);
     }
-
     m_planner->goal_Config = temp_target_config;
-    // Planning Time
-    m_planner->planning_time = 5;
+
+
+    // Assign Planning Time
+    m_planner->planning_time = req.time_limit;
+
+    // Assign Cost Bias
     m_planner->cost_bias = req.cost_weight;
+
+    // Start Planning
     m_planner->start_planning(req.group_name);
 
-    m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
+    res.total_cost = m_planner->path_cost;
+    res.total_length = m_planner->path_length;
 
-    //m_planner->m_robot_model.display_traj(m_planner->optimized_trajectory,req.group_name);
+    // Generate & Execute/Display a trajectory
+    m_planner->m_robot_model.execute_joint_trajectory(m_planner->optimized_trajectory,req.group_name);
 
     return true;
 }
@@ -54,10 +60,7 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::ServiceServer server = n.advertiseService("Optimize_plan_server",plan);
 
-    //m_robot_model = new motoman_move_group;
-
     m_planner = new optimize_planner::motoman_planner;
-    //ROS_INFO("Optimize planner created!");
 
     ROS_INFO(">>>>>>>>>>>>>>> Plan server created! >>>>>>>>>>>>>>>");
 
