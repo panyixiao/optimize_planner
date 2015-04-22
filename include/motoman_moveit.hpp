@@ -33,6 +33,8 @@
 
 namespace traj_man = trajectory_execution_manager;
 
+boost::shared_ptr<robot_model_loader::RobotModelLoader> rmodel_ ;
+
 namespace optimize_planner
 {
 class motoman_move_group
@@ -44,8 +46,9 @@ public:
         marker_pub_ = boost::shared_ptr<ros::Publisher>(new ros::Publisher) ;
         *marker_pub_ = nh.advertise<visualization_msgs::Marker>("/visualization_marker",1) ;
 
-        robot_loader = new robot_model_loader::RobotModelLoader("robot_description");
-        kinematic_model = robot_loader->getModel();
+        rmodel_.reset() ;
+        rmodel_ = boost::shared_ptr<robot_model_loader::RobotModelLoader>(new robot_model_loader::RobotModelLoader("robot_description")) ;
+        kinematic_model = rmodel_->getModel() ;
         kinematic_state = new robot_state::RobotState(kinematic_model);
         right_arm_joint_group = kinematic_model->getJointModelGroup("arm_right");
         left_arm_joint_group = kinematic_model->getJointModelGroup("arm_left");
@@ -210,7 +213,7 @@ public:
         ROS_INFO("Sending Trajectory to joint_trajectory_action");
         //traj_manager->pushAndExecute(m_trajectory);
 
-        ROS_INFO("Trajectory Sended....");
+        ROS_INFO("Trajectory Sent....");
         display_traj(m_trajectory,group_name);
         return true;
     }

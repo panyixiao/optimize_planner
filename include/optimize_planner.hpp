@@ -70,7 +70,6 @@ class ValidityChecker : public ob::StateValidityChecker
 {
 protected:
     std::unique_ptr<planning_scene::PlanningScene> planning_scene_ptr_ ;
-    std::unique_ptr<robot_model_loader::RobotModelLoader> rmodel_ ;
     boost::shared_ptr<collision_detection::CollisionRobot> crobot_;
     boost::shared_ptr<collision_detection::CollisionWorld> cworld_;
     std::unique_ptr<collision_detection::CollisionWorldAllValid> all_world_ptr_ ;
@@ -82,9 +81,6 @@ public:
     ValidityChecker(const ob::SpaceInformationPtr& si) :
         ob::StateValidityChecker(si)
     {
-        rmodel_.reset() ;
-        rmodel_ = std::unique_ptr<robot_model_loader::RobotModelLoader>(new robot_model_loader::RobotModelLoader("robot_description")) ;
-
         cworld_.reset() ;
         cworld_ = boost::shared_ptr<collision_detection::CollisionWorld>(new collision_detection::CollisionWorldFCL()) ;
 
@@ -246,7 +242,7 @@ namespace optimize_planner
 
             if(status == ob::PlannerStatus::EXACT_SOLUTION || status == ob::PlannerStatus::APPROXIMATE_SOLUTION)
             {
-                std::cout<<"Find Path"<<std::endl;
+                std::cout<<"Path Found"<<std::endl;
                 // Generate the Path
                 optimized_trajectory.clear();
 
