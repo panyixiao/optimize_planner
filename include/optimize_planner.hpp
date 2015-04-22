@@ -316,18 +316,6 @@ namespace optimize_planner
              return rt_state;
          }
 
-
-
-//         bool isStateValid(const ob::State* state)
-//         {
-//             // Moveit is needed here
-//             const ob::SE3StateSpace::StateType *se3state = state->as<ob::SE3StateSpace::StateType>();
-//             const ob::RealVectorStateSpace::StateType *pos = se3state->as<ob::RealVectorStateSpace::StateType>(0);
-//             const ob::SO3StateSpace::StateType *rot = se3state->as<ob::SO3StateSpace::StateType>(1);
-
-//             return (const void*)rot != (const void*)pos;
-//         }
-
          double calculate_trajectory_euclidean_length(std::string& group_name)
          {
             double length = 0.0;
