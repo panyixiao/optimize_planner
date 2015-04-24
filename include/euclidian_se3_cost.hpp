@@ -59,6 +59,8 @@ namespace optimize_planner
             // When q1 is pointing the opposite direction to q2, the distance should be 1
 
             distance = acos(2*inner_product*inner_product - 1);
+            //distance = 2*(1 - inner_product) ;
+            //distance = 2*acos(inner_product);
 
             return distance;
         }
