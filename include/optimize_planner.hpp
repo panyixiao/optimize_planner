@@ -32,6 +32,7 @@
 
 // Cost Function
 #include "euclidian_se3_cost.hpp"
+#include "cspace_cost.hpp"
 
 // Macro to disable unused parameter compiler warnings
 #define UNUSED(x) (void)(x)
@@ -122,8 +123,10 @@ public:
     virtual bool isValid(const ob::State *state) const
     {
         //std::cout << ">>>>>>>>>>>>>>>Validity Check>>>>>>>>>>>>" << std::endl ;
+
         std::vector<double> JointValues(motoman_arm_DOF) ;
         std::vector<std::string> variable_names(motoman_arm_DOF) ;
+
         const ob::RealVectorStateSpace::StateType *sample_state = state->as<ob::RealVectorStateSpace::StateType>() ;
 
         robot_state::RobotState& current_state = planning_scene_ptr_->getCurrentStateNonConst();
@@ -156,7 +159,6 @@ public:
     }
 
 };
-
 
 namespace optimize_planner
 {
@@ -209,7 +211,8 @@ namespace optimize_planner
 
             // Make a cost function that combines path length with minimizing workspace Euclidian cost
             ob::MultiOptimizationObjective* combined_cost_fn = new ob::MultiOptimizationObjective(sample_si);
-            ob::OptimizationObjectivePtr path_length_cost_fn(new ob::PathLengthOptimizationObjective(sample_si));
+            //ob::OptimizationObjectivePtr path_length_cost_fn(new ob::PathLengthOptimizationObjective(sample_si));
+            ob::OptimizationObjectivePtr path_length_cost_fn(new optimize_planner::Configuration_Space_cost(sample_si));
             ob::OptimizationObjectivePtr workspace_cost_fn(new optimize_planner::SE3dis_OptimizationObjective(sample_si,&m_robot_model,group_name));
 
             combined_cost_fn->addObjective(path_length_cost_fn, (1.0 - cost_bias));
