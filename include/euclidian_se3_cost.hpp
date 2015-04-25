@@ -3,7 +3,7 @@
 #include <ompl/base/OptimizationObjective.h>
 #include <ompl/base/objectives/StateCostIntegralObjective.h>
 
-#include"motoman_moveit.hpp"
+#include "motoman_moveit.hpp"
 using namespace ompl;
 
 namespace optimize_planner
@@ -66,7 +66,7 @@ namespace optimize_planner
         std::vector<double> GetJointGroupValues(const ompl::base::State *state) const
         {
             std::vector<double> JntGrp_Val;
-            for(int i = 0; i<motoman_arm_DOF;i++)
+            for(int i = 0; i< motoman_arm_DOF; i++)
             {
                 double joint_val;
                 joint_val = state->as<ompl::base::RealVectorStateSpace::StateType>()->values[i];
