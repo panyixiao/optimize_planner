@@ -48,6 +48,7 @@ enum planner_type
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
+boost::shared_ptr<std::string> plan_group ;
 
 void dealocate_StateValidityChecker_fn(ompl::base::StateValidityChecker* p)
 {
@@ -121,45 +122,30 @@ public:
     virtual bool isValid(const ob::State *state) const
     {
         //std::cout << ">>>>>>>>>>>>>>>Validity Check>>>>>>>>>>>>" << std::endl ;
-        std::vector<double> JointValues(7) ;
-        std::vector<std::string> variable_names(7) ;
+        std::vector<double> JointValues(motoman_arm_DOF) ;
+        std::vector<std::string> variable_names(motoman_arm_DOF) ;
         const ob::RealVectorStateSpace::StateType *sample_state = state->as<ob::RealVectorStateSpace::StateType>() ;
 
         robot_state::RobotState& current_state = planning_scene_ptr_->getCurrentStateNonConst();
-        const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup("arm_left");
+        const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup(*plan_group);
 
-        variable_names[0] = "arm_left_joint_1_s" ;
-        JointValues[0] = sample_state->values[0] ;
-
-        variable_names[1] = "arm_left_joint_2_l" ;
-        JointValues[1] = sample_state->values[1] ;
-
-        variable_names[2] = "arm_left_joint_3_e" ;
-        JointValues[2] = sample_state->values[2] ;
-
-        variable_names[3] = "arm_left_joint_4_u" ;
-        JointValues[3] = sample_state->values[3] ;
-
-        variable_names[4] = "arm_left_joint_5_r" ;
-        JointValues[4] = sample_state->values[4] ;
-
-        variable_names[5] = "arm_left_joint_6_b" ;
-        JointValues[5] = sample_state->values[5] ;
-
-        variable_names[6] = "arm_left_joint_7_t" ;
-        JointValues[6] = sample_state->values[6] ;
+        for( int i = 0 ; i < model_group->getJointModelNames().size() ; i++ )
+        {
+            variable_names[i] = model_group->getJointModelNames()[i] ;
+            JointValues[i] = sample_state->values[i] ;
+        }
 
         current_state.setVariablePositions(variable_names,JointValues) ;
         current_state.update() ;
 
         collision_detection::CollisionRequest req;
-        req.group_name = "left_arm" ;
+        req.group_name = *plan_group ;
         collision_detection::CollisionResult  res;
         all_world_ptr_->checkRobotCollision(req , res,*crobot_, current_state , *acm_ ) ;
 
-        if(planning_scene_ptr_->isStateValid(current_state, "left_arm") == 1 &&
+        if(planning_scene_ptr_->isStateValid(current_state, *plan_group) == 1 &&
            current_state.satisfiesBounds(model_group) == 1 &&
-           planning_scene_ptr_->isStateColliding(current_state,"left_arm") == 0)
+           planning_scene_ptr_->isStateColliding(current_state, *plan_group) == 0)
         {
             return true  ;
         }
@@ -188,6 +174,10 @@ namespace optimize_planner
         bool start_planning(std::string group_name)
         {
             std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
+
+            plan_group.reset() ;
+            plan_group = boost::shared_ptr<std::string>(new std::string) ;
+            *plan_group = group_name ;
 
             ob::StateSpacePtr Joint_space(new ob::RealVectorStateSpace(motoman_arm_DOF));
             ob::RealVectorBounds Joint_bounds(motoman_arm_DOF);
