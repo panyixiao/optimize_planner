@@ -10,10 +10,10 @@ namespace ob = ompl::base;
 
 namespace optimize_planner
 {
-    class Configuration_Space_cost :public ob::PathLengthOptimizationObjective
+    class Configuration_Space_cost :public ob::StateCostIntegralObjective
     {
     public:
-        Configuration_Space_cost(const ob::SpaceInformationPtr &si): ob::PathLengthOptimizationObjective(si)
+        Configuration_Space_cost(const ob::SpaceInformationPtr &si): ob::StateCostIntegralObjective(si)
         {}
 
         virtual ob::Cost stateCost(const ob::State *s) const
@@ -40,12 +40,12 @@ namespace optimize_planner
             double MAX_VALUE = 10;
 
             Joint_Weight.push_back(MAX_VALUE);
-            Joint_Weight.push_back(MAX_VALUE/2);
-            Joint_Weight.push_back(MAX_VALUE/3);
-            Joint_Weight.push_back(MAX_VALUE/4);
-            Joint_Weight.push_back(MAX_VALUE/4);
-            Joint_Weight.push_back(MAX_VALUE/4);
-            Joint_Weight.push_back(MAX_VALUE/4);
+            Joint_Weight.push_back(MAX_VALUE);
+            Joint_Weight.push_back(MAX_VALUE/100);
+            Joint_Weight.push_back(MAX_VALUE/100);
+            Joint_Weight.push_back(MAX_VALUE/100);
+            Joint_Weight.push_back(MAX_VALUE/100);
+            Joint_Weight.push_back(MAX_VALUE/100);
         }
 
     private:

@@ -66,7 +66,6 @@ void dealocate_OptimiztionObjective_fn(ompl::base::OptimizationObjective* p)
     UNUSED(p);
 }
 
-
 class ValidityChecker : public ob::StateValidityChecker
 {
 protected:

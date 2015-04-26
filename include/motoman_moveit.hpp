@@ -22,6 +22,7 @@
 #define motoman_arm_DOF 7
 
 // motoman_joint_limits
+#define Joint_torso_Limits 2.95
 #define Joint_1_s_Limits 3.13
 #define Joint_2_l_Limits 1.90
 #define Joint_3_e_Limits 2.95
@@ -63,7 +64,7 @@ namespace optimize_planner
             //traj_manager = new traj_man::TrajectoryExecutionManager(kinematic_model);
         }
 
-        std::vector<double> GetGroupConfig(std::string& groupName)
+        std::vector<double> GetGroupCurrentConfig(std::string& groupName)
         {
             std::vector<double> JointValues;
             if (groupName == right_arm_group->getName())
@@ -145,7 +146,7 @@ namespace optimize_planner
             return translation;
         }
 
-        bool execute_joint_trajectory(std::vector< std::vector<double> > &joint_trajectory,std::string group_name)
+        bool generate_trajectory(std::vector< std::vector<double> > &joint_trajectory,std::string group_name)
         {
             double start_time = 0.5;
 
@@ -170,7 +171,7 @@ namespace optimize_planner
 
             int trajectory_length = joint_trajectory.size();
             m_trajectory.points.resize(trajectory_length+1);
-            std::vector<double> current_joint_value = GetGroupConfig(group_name);
+            std::vector<double> current_joint_value = GetGroupCurrentConfig(group_name);
             // Init first point
             m_trajectory.points[0].positions.resize(motoman_arm_DOF);
             m_trajectory.points[0].velocities.resize(motoman_arm_DOF);
@@ -213,28 +214,18 @@ namespace optimize_planner
             m_trajectory.header.stamp = ros::Time::now() + ros::Duration(start_time);
 
             std::cout<<"Totally "<<m_trajectory.points.size()<<" points will be executed"<<std::endl;
-            ROS_INFO("Sending Trajectory to joint_trajectory_action");
-            //traj_manager->pushAndExecute(m_trajectory);
 
-            ROS_INFO("Trajectory Sent....");
-            display_traj(m_trajectory,group_name);
             return true;
         }
 
+
+
+
         void display_traj(trajectory_msgs::JointTrajectory traj , std::string group_name)
         {
-            ROS_INFO("Displaying Trajectory") ;
+            ROS_INFO("Displaying Trajectory...") ;
             geometry_msgs::PoseStamped ee_pos ;
             std::vector<std::string> JointNames;
-            //ros::NodeHandle node_handle ;
-            //ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::MarkerArray>("/visualization_marker_array", 100, true);
-            //ros::Publisher marker_pub = node_handle.advertise<visualization_msgs::Marker>("/visualization_marker",1);
-
-            //if( !marker_pub ) {
-            //    ROS_INFO("Invalid Publisher !! ") ;
-            //}
-            //else
-            //    ROS_INFO("Valid Publisher !! ") ;
 
             visualization_msgs::MarkerArray path ;
             std_msgs::ColorRGBA point_color, line_color;
@@ -261,7 +252,7 @@ namespace optimize_planner
             JointNames.pop_back();
             JointNames.pop_back();
 
-            std::vector<double> joint_pos = GetGroupConfig(group_name);
+            std::vector<double> joint_pos = GetGroupCurrentConfig(group_name);
             Eigen::Affine3d ee_transformation;
             visualization_msgs::Marker point ;
             visualization_msgs::Marker line ;
@@ -307,8 +298,8 @@ namespace optimize_planner
                 line.type = visualization_msgs::Marker::LINE_STRIP ;
                 line.action = visualization_msgs::Marker::ADD ;
 
-                point.lifetime = ros::Duration() ;
-                line.lifetime = ros::Duration() ;
+                point.lifetime = ros::Duration();
+                line.lifetime = ros::Duration();
 
                 point.scale.x = 0.02 ;
                 point.scale.y = 0.02 ;
@@ -344,6 +335,7 @@ namespace optimize_planner
     public:
         move_group_interface::MoveGroup* right_arm_group;
         move_group_interface::MoveGroup* left_arm_group;
+        trajectory_msgs::JointTrajectory m_trajectory;
 
         double display_color_scale;
 
@@ -356,8 +348,6 @@ namespace optimize_planner
         const robot_model::JointModelGroup* left_arm_joint_group;
 
         traj_man::TrajectoryExecutionManager* traj_manager;
-        trajectory_msgs::JointTrajectory m_trajectory;
-
         ros::NodeHandle nh;
         boost::shared_ptr<ros::Publisher> marker_pub_ ;
     };

@@ -1,4 +1,5 @@
 string group_name
+float32[] start_config
 float32[] target_config
 geometry_msgs/Vector3 start
 geometry_msgs/Vector3 target
@@ -11,6 +12,7 @@ uint8 TRRT=1
 uint8 FMTSTAR=2
 uint8 planner_type
 ---
+trajectory_msgs/JointTrajectory plan
 float64 run_time
 float64 total_cost
 float64 total_length

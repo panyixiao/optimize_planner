@@ -60,6 +60,7 @@ find_package(Eigen REQUIRED)
  add_service_files(
     FILES
     PathPlan.srv
+#   Service2.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -74,7 +75,6 @@ find_package(Eigen REQUIRED)
    DEPENDENCIES
    std_msgs  # Or other packages containing msgs
    geometry_msgs
-   trajectory_msgs
  )
 
 ###################################
