@@ -1,10 +1,6 @@
 string group_name
 float32[] start_config
 float32[] target_config
-geometry_msgs/Vector3 start
-geometry_msgs/Vector3 target
-float64 target_tolerance
-float64 probe_radius
 float64 cost_weight
 float64 time_limit
 uint8 RRTSTAR=0
@@ -12,12 +8,10 @@ uint8 TRRT=1
 uint8 FMTSTAR=2
 uint8 planner_type
 ---
-trajectory_msgs/JointTrajectory plan
+moveit_msgs/RobotTrajectory plan
 float64 run_time
 float64 total_cost
 float64 total_length
-geometry_msgs/Vector3 tip_position
-geometry_msgs/Vector3 error
 uint8 SUCCESS=0
 uint8 APPROXIMATE=1
 uint8 TIMEOUT=2

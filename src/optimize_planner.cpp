@@ -25,7 +25,7 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
     if(req.target_config.empty())
     {
         std::cout<< "No target assigned!, Exit!"<<std::endl;
-        return false;
+        return true;
     }
     std::vector<double> temp_target_config;
     for(int i = 0;i<req.target_config.size();i++)
@@ -41,30 +41,50 @@ bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::
     m_planner->cost_bias = req.cost_weight;
 
     // Start Planning
-    if(m_planner->start_planning(req.group_name))
+    ob::PlannerStatus::StatusType plan_status = m_planner->start_planning(req.group_name);
+    if(plan_status == ob::PlannerStatus::EXACT_SOLUTION || plan_status == ob::PlannerStatus::APPROXIMATE_SOLUTION)
     {
         res.total_cost = m_planner->path_cost;
         res.total_length = m_planner->path_length;
 
         // Use different color to display
         m_planner->m_robot_model.display_color_scale = req.cost_weight;
-        // Generate & Execute/Display a trajectory
-        bool Traj_generated = m_planner->m_robot_model.generate_trajectory(m_planner->optimized_trajectory,req.group_name);
 
-        if(Traj_generated)
+        // Generate a trajectory
+        m_planner->m_robot_model.generate_trajectory(m_planner->optimized_trajectory,req.group_name);
+
+        // Display a Traj
+        m_planner->m_robot_model.display_traj(m_planner->m_robot_model.m_trajectory.joint_trajectory,req.group_name);
+
+        ROS_INFO("Sending Trajectory back to client");
+
+        res.plan = m_planner->m_robot_model.m_trajectory;
+
+        if(plan_status == ob::PlannerStatus::APPROXIMATE_SOLUTION)
         {
-            // Display Traj
-            m_planner->m_robot_model.display_traj(m_planner->m_robot_model.m_trajectory,req.group_name);
-
-            ROS_INFO("Sending Trajectory back to client");
-
-            res.plan = m_planner->m_robot_model.m_trajectory;
-
-            return true;
+            res.status = res.APPROXIMATE;
+        }
+        else
+        {
+            res.status = res.SUCCESS;
+        }
+    }
+    else
+    {
+        switch(plan_status)
+        {
+        case ob::PlannerStatus::INVALID_START:
+            res.status = res.INVALID_START;
+        case ob::PlannerStatus::INVALID_GOAL:
+            res.status = res.INVALID_GOAL;
+        case ob::PlannerStatus::TIMEOUT:
+            res.status = res.TIMEOUT;
+        default:
+            res.status = res.UNKNOWN_ERROR;
         }
     }
 
-    return false;
+    return true;
 }
 
 int main(int argc, char **argv)

@@ -162,43 +162,43 @@ namespace optimize_planner
                 JointNames = left_arm_group->getJoints();
                 arm_controller.push_back("fake_arm_left_controller");
             }
-            m_trajectory.joint_names.resize(motoman_arm_DOF);
+            m_trajectory.joint_trajectory.joint_names.resize(motoman_arm_DOF);
             for(int k = 0; k< motoman_arm_DOF;k++)
             {
                 //std::cout<<"Joint: "<<JointNames[k]<<std::endl;
-                m_trajectory.joint_names[k] = JointNames[k];
+                m_trajectory.joint_trajectory.joint_names[k] = JointNames[k];
             }
 
             int trajectory_length = joint_trajectory.size();
-            m_trajectory.points.resize(trajectory_length+1);
+            m_trajectory.joint_trajectory.points.resize(trajectory_length+1);
             std::vector<double> current_joint_value = GetGroupCurrentConfig(group_name);
             // Init first point
-            m_trajectory.points[0].positions.resize(motoman_arm_DOF);
-            m_trajectory.points[0].velocities.resize(motoman_arm_DOF);
+            m_trajectory.joint_trajectory.points[0].positions.resize(motoman_arm_DOF);
+            m_trajectory.joint_trajectory.points[0].velocities.resize(motoman_arm_DOF);
             for(int i = 0; i<motoman_arm_DOF;i++)
             {
-                m_trajectory.points[0].positions[i] = current_joint_value[i];
-                m_trajectory.points[0].velocities[i] = 0.0;
+                m_trajectory.joint_trajectory.points[0].positions[i] = current_joint_value[i];
+                m_trajectory.joint_trajectory.points[0].velocities[i] = 0.0;
             }
-            m_trajectory.points[0].time_from_start = ros::Duration(start_time);
+            m_trajectory.joint_trajectory.points[0].time_from_start = ros::Duration(start_time);
             // Fill the rest of the trajectory
             double time_from_start  = start_time;
 
             for(int i = 0; i<trajectory_length;i++)
             {
-                m_trajectory.points[i+1].positions.resize(motoman_arm_DOF);
-                m_trajectory.points[i+1].velocities.resize(motoman_arm_DOF);
+                m_trajectory.joint_trajectory.points[i+1].positions.resize(motoman_arm_DOF);
+                m_trajectory.joint_trajectory.points[i+1].velocities.resize(motoman_arm_DOF);
                 for(int j = 0; j<motoman_arm_DOF;j++)
                 {
-                    m_trajectory.points[i+1].positions[j] = joint_trajectory[i][j];
+                    m_trajectory.joint_trajectory.points[i+1].positions[j] = joint_trajectory[i][j];
                     //std::cout<<"Point "<<i+1<<", Joint "<<j<<" config: "<<joint_trajectory[i][j]<<std::endl;
-                    m_trajectory.points[i+1].velocities[j] = 0.0;
+                    m_trajectory.joint_trajectory.points[i+1].velocities[j] = 0.0;
                 }
 
                 double max_joint_move = 0;
                 for(int j = 0; j< motoman_arm_DOF; j++)
                 {
-                    double joint_move = fabs(m_trajectory.points[i+1].positions[j] - m_trajectory.points[i].positions[j]);
+                    double joint_move = fabs(m_trajectory.joint_trajectory.points[i+1].positions[j] - m_trajectory.joint_trajectory.points[i].positions[j]);
                     if(joint_move > max_joint_move)
                     {
                         max_joint_move = joint_move;
@@ -206,14 +206,14 @@ namespace optimize_planner
                 }
                 double seconds = max_joint_move/MAX_JOINT_VEL;
 
-                time_from_start+=seconds;
+                time_from_start += seconds;
 
-                m_trajectory.points[i+1].time_from_start = ros::Duration(time_from_start);
+                m_trajectory.joint_trajectory.points[i+1].time_from_start = ros::Duration(time_from_start);
             }
 
-            m_trajectory.header.stamp = ros::Time::now() + ros::Duration(start_time);
+            m_trajectory.joint_trajectory.header.stamp = ros::Time::now() + ros::Duration(start_time);
 
-            std::cout<<"Totally "<<m_trajectory.points.size()<<" points will be executed"<<std::endl;
+            std::cout<<"Totally "<<m_trajectory.joint_trajectory.points.size()<<" points will be executed"<<std::endl;
 
             return true;
         }
@@ -335,7 +335,9 @@ namespace optimize_planner
     public:
         move_group_interface::MoveGroup* right_arm_group;
         move_group_interface::MoveGroup* left_arm_group;
-        trajectory_msgs::JointTrajectory m_trajectory;
+
+        moveit_msgs::RobotTrajectory m_trajectory;
+        //trajectory_msgs::JointTrajectory m_trajectory;
 
         double display_color_scale;
 

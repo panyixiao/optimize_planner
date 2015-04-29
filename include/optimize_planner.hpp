@@ -172,7 +172,7 @@ namespace optimize_planner
             cost_bias = 0.1;
          }
 
-        bool start_planning(std::string group_name)
+        ob::PlannerStatus::StatusType start_planning(std::string group_name)
         {
             std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
 
@@ -210,8 +210,8 @@ namespace optimize_planner
 
             // Make a cost function that combines path length with minimizing workspace Euclidian cost
             ob::MultiOptimizationObjective* combined_cost_fn = new ob::MultiOptimizationObjective(sample_si);
-            //ob::OptimizationObjectivePtr path_length_cost_fn(new ob::PathLengthOptimizationObjective(sample_si));
-            ob::OptimizationObjectivePtr path_length_cost_fn(new optimize_planner::Configuration_Space_cost(sample_si));
+            ob::OptimizationObjectivePtr path_length_cost_fn(new ob::PathLengthOptimizationObjective(sample_si));
+            //ob::OptimizationObjectivePtr path_length_cost_fn(new optimize_planner::Configuration_Space_cost(sample_si));
             ob::OptimizationObjectivePtr workspace_cost_fn(new optimize_planner::SE3dis_OptimizationObjective(sample_si,&m_robot_model,group_name));
 
             combined_cost_fn->addObjective(path_length_cost_fn, (1.0 - cost_bias));
@@ -228,7 +228,7 @@ namespace optimize_planner
             planner->setProblemDefinition(pdef);
             planner->setup();
             // Plan!!
-            ob::PlannerStatus status = planner->solve(planning_time);
+            ob::PlannerStatus::StatusType status = planner->solve(planning_time);
 
             // Generate a trajectory
 
@@ -261,13 +261,13 @@ namespace optimize_planner
                 path_length = calculate_trajectory_euclidean_length(group_name);
                 path_cost = path->cost(cost_fn).value();
 
-                return true;
             }
             else
             {
                 std::cout<<"Can't find solution"<<std::endl;
-                return false;
             }
+
+            return status;
         }
 
     private:
