@@ -111,8 +111,8 @@ public:
         Eigen::Affine3d pose = r*t ;
 
         shapes::ShapePtr world_cube ;
-        world_cube.reset(new shapes::Box(0.87, 0.87, 1.77));
-        cworld_->getWorld()->addToObject("bin",world_cube,pose) ;
+        //world_cube.reset(new shapes::Box(0.87, 0.87, 1.77));
+        //cworld_->getWorld()->addToObject("bin",world_cube,pose) ;
 
         specs_.clearanceComputationType = ob::StateValidityCheckerSpecs::NONE;
         specs_.hasValidDirectionComputation = false;
@@ -168,7 +168,7 @@ namespace optimize_planner
          {
             // Give default planning time
             planning_time = 10;
-            goal_tolerance = 0.01;
+            goal_tolerance = 0.05;
             cost_bias = 0.1;
          }
 
@@ -205,7 +205,7 @@ namespace optimize_planner
 
             // Creat Problem Definition
             ob::ProblemDefinitionPtr pdef(new ob::ProblemDefinition(sample_si));
-            pdef->setStartAndGoalStates(start_state,goal_state);
+            pdef->setStartAndGoalStates(start_state,goal_state,goal_tolerance);
             //pdef->addStartState(start_state);
 
             // Make a cost function that combines path length with minimizing workspace Euclidian cost

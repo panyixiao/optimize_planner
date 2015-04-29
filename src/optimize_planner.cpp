@@ -17,24 +17,27 @@ optimize_planner::motoman_planner* m_planner;
 
 bool plan(optimize_planner::PathPlan::Request &req, optimize_planner::PathPlan::Response &res)
 {
-    // Setting Start & Goal Configuration
-    m_planner->start_Config.clear();
-    m_planner->start_Config = m_planner->m_robot_model.GetGroupCurrentConfig(req.group_name);
-    m_planner->goal_Config.clear();
-
     if(req.target_config.empty())
     {
         std::cout<< "No target assigned!, Exit!"<<std::endl;
         return true;
     }
-    std::vector<double> temp_target_config;
+
+    // Setting Start & Goal Configuration
+    m_planner->start_Config.clear();
+    for(int i = 0;i<req.start_config.size();i++)
+    {
+        double JntValue = req.start_config[i];
+         m_planner->start_Config.push_back(JntValue);
+    }
+
+    m_planner->goal_Config.clear();
     for(int i = 0;i<req.target_config.size();i++)
     {
         double JntValue = req.target_config[i];
-        temp_target_config.push_back(JntValue);
+         m_planner->goal_Config.push_back(JntValue);
     }
 
-    m_planner->goal_Config = temp_target_config;
     // Setting Planning Time
     m_planner->planning_time = req.time_limit;
     // Setting Cost Bias

@@ -248,9 +248,6 @@ namespace optimize_planner
                 JointNames = left_arm_group->getJoints();
             }
             // There three customized joint added which is not bolongs to original model
-            JointNames.pop_back();
-            JointNames.pop_back();
-            JointNames.pop_back();
 
             std::vector<double> joint_pos = GetGroupCurrentConfig(group_name);
             Eigen::Affine3d ee_transformation;
