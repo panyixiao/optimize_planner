@@ -13,8 +13,10 @@ namespace optimize_planner
     class Configuration_Space_cost :public ob::StateCostIntegralObjective
     {
     public:
-        Configuration_Space_cost(const ob::SpaceInformationPtr &si): ob::StateCostIntegralObjective(si)
-        {}
+        Configuration_Space_cost(const ob::SpaceInformationPtr &si, int c_space_size): ob::StateCostIntegralObjective(si)
+        {
+            space_dim = c_space_size;
+        }
 
         virtual ob::Cost stateCost(const ob::State *s) const
         {
@@ -27,25 +29,41 @@ namespace optimize_planner
             double motion_cost = 0.0;
             std::vector<double> config_1 = GetJointGroupValues(s1);
             std::vector<double> config_2 = GetJointGroupValues(s2);
-            std::vector<double> joint_weight = GenerateJointWeight();
+
+            std::vector<double> joint_weight = GenerateJointWeight(space_dim);
+
             motion_cost = get_motion_cost(config_1,config_2,joint_weight);
 
             return ob::Cost(motion_cost);
         }
 
-        std::vector<double> GenerateJointWeight() const
+        std::vector<double> GenerateJointWeight(int space_dim) const
         {
             std::vector<double> Joint_Weight;
-
             double MAX_VALUE = 10;
+            if(space_dim == 8)
+            {
+                Joint_Weight.push_back(MAX_VALUE);
+                Joint_Weight.push_back(MAX_VALUE);
+                Joint_Weight.push_back(MAX_VALUE);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+            }
+            else
+            {
+                Joint_Weight.push_back(MAX_VALUE);
+                Joint_Weight.push_back(MAX_VALUE);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+                Joint_Weight.push_back(MAX_VALUE/100);
+            }
 
-            Joint_Weight.push_back(MAX_VALUE);
-            Joint_Weight.push_back(MAX_VALUE);
-            Joint_Weight.push_back(MAX_VALUE/100);
-            Joint_Weight.push_back(MAX_VALUE/100);
-            Joint_Weight.push_back(MAX_VALUE/100);
-            Joint_Weight.push_back(MAX_VALUE/100);
-            Joint_Weight.push_back(MAX_VALUE/100);
+            return Joint_Weight;
         }
 
     private:
@@ -86,6 +104,7 @@ namespace optimize_planner
             return distance;
         }
 
+        int space_dim;
     };
 
 }

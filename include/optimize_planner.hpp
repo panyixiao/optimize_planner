@@ -1,17 +1,24 @@
 // ROS
 #include <ros/ros.h>
+
 // OMPL
+#include <ompl/geometric/SimpleSetup.h>
+
+// OMPL Sample Space
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/SE3StateSpace.h>
 #include <ompl/base/spaces/RealVectorStateSpace.h>
 #include <ompl/base/StateSpace.h>
-#include <ompl/geometric/SimpleSetup.h>
 
 //OMPL Planners
 #include <ompl/geometric/planners/rrt/RRTstar.h>
 #include <ompl/geometric/planners/rrt/RRTConnect.h>
 
+//OMPL OptimizeObject
 #include <ompl/base/objectives/PathLengthOptimizationObjective.h>
+
+//OMPL Simplifier
+#include <ompl/geometric/PathSimplifier.h>
 
 //MOVEIT
 #include <moveit/robot_model_loader/robot_model_loader.h>
@@ -49,7 +56,6 @@ enum planner_type
 
 namespace ob = ompl::base;
 namespace og = ompl::geometric;
-boost::shared_ptr<std::string> plan_group ;
 
 void dealocate_StateValidityChecker_fn(ompl::base::StateValidityChecker* p)
 {
@@ -69,6 +75,9 @@ void dealocate_OptimiztionObjective_fn(ompl::base::OptimizationObjective* p)
 
 class ValidityChecker : public ob::StateValidityChecker
 {
+public:
+    std::string plan_group;
+
 protected:
     std::unique_ptr<planning_scene::PlanningScene> planning_scene_ptr_ ;
     boost::shared_ptr<collision_detection::CollisionRobot> crobot_;
@@ -77,11 +86,15 @@ protected:
     collision_detection::AllowedCollisionMatrixPtr acm_ ;
     ros::NodeHandle nh;
     boost::shared_ptr<ros::Publisher> state_pub_ ;
+    int c_space_dim;
 
 public:
-    ValidityChecker(const ob::SpaceInformationPtr& si) :
+    ValidityChecker(const ob::SpaceInformationPtr& si,int space_dim, std::string group_name) :
         ob::StateValidityChecker(si)
     {
+        c_space_dim = space_dim;
+        plan_group = group_name;
+
         cworld_.reset() ;
         cworld_ = boost::shared_ptr<collision_detection::CollisionWorld>(new collision_detection::CollisionWorldFCL()) ;
 
@@ -92,10 +105,10 @@ public:
         crobot_ = boost::shared_ptr<collision_detection::CollisionRobotFCL>(new collision_detection::CollisionRobotFCL(rmodel_->getModel())) ;
 
         all_world_ptr_.reset() ;
-        all_world_ptr_ = std::unique_ptr<collision_detection::CollisionWorldAllValid>(new collision_detection::CollisionWorldAllValid(cworld_->getWorld())) ;
+        all_world_ptr_ = std::unique_ptr<collision_detection::CollisionWorldAllValid>(new collision_detection::CollisionWorldAllValid(cworld_->getWorld()));
 
         acm_.reset(new collision_detection::AllowedCollisionMatrix(rmodel_->getModel()->getLinkModelNames(),true)) ;
-        //std::cout << acm_->hasEntry("hand_left_palm") << std::endl ;
+        //std::cout << acm_->hasEntry("hand_left_palm") << std::endl;
 
         state_pub_.reset() ;
         state_pub_ = boost::shared_ptr<ros::Publisher>(new ros::Publisher) ;
@@ -123,13 +136,13 @@ public:
     {
         //std::cout << ">>>>>>>>>>>>>>>Validity Check>>>>>>>>>>>>" << std::endl ;
 
-        std::vector<double> JointValues(motoman_arm_DOF) ;
-        std::vector<std::string> variable_names(motoman_arm_DOF) ;
+        std::vector<double> JointValues(c_space_dim) ;
+        std::vector<std::string> variable_names(c_space_dim) ;
 
         const ob::RealVectorStateSpace::StateType *sample_state = state->as<ob::RealVectorStateSpace::StateType>() ;
 
         robot_state::RobotState& current_state = planning_scene_ptr_->getCurrentStateNonConst();
-        const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup(*plan_group);
+        const robot_model::JointModelGroup* model_group = current_state.getJointModelGroup(plan_group);
 
         for( int i = 0 ; i < model_group->getJointModelNames().size() ; i++ )
         {
@@ -141,13 +154,13 @@ public:
         current_state.update() ;
 
         collision_detection::CollisionRequest req;
-        req.group_name = *plan_group ;
+        req.group_name = plan_group ;
         collision_detection::CollisionResult  res;
         all_world_ptr_->checkRobotCollision(req , res,*crobot_, current_state , *acm_ ) ;
 
-        if(planning_scene_ptr_->isStateValid(current_state, *plan_group) == 1 &&
+        if(planning_scene_ptr_->isStateValid(current_state, plan_group) == 1 &&
            current_state.satisfiesBounds(model_group) == 1 &&
-           planning_scene_ptr_->isStateColliding(current_state, *plan_group) == 0)
+           planning_scene_ptr_->isStateColliding(current_state, plan_group) == 0)
         {
             return true  ;
         }
@@ -166,37 +179,38 @@ namespace optimize_planner
     public:
          motoman_planner()
          {
-            // Give default planning time
+            // Give default planning time, could be changed by request
             planning_time = 10;
             goal_tolerance = 0.05;
             cost_bias = 0.1;
+            c_space_size = motoman_arm_DOF;
          }
 
         ob::PlannerStatus::StatusType start_planning(std::string group_name)
         {
             std::cout<<">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"<<std::endl;
 
-            plan_group.reset() ;
-            plan_group = boost::shared_ptr<std::string>(new std::string) ;
-            *plan_group = group_name ;
+            if(group_name == "arm_left_torso" || group_name == "arm_right_torso")
+            {
+                c_space_size = 8;
+            }
 
-            ob::StateSpacePtr Joint_space(new ob::RealVectorStateSpace(motoman_arm_DOF));
-            ob::RealVectorBounds Joint_bounds(motoman_arm_DOF);
+            ob::StateSpacePtr Joint_space(new ob::RealVectorStateSpace(c_space_size));
+            ob::RealVectorBounds Joint_bounds(c_space_size);
 
             //Joint_bounds()
-            setStateSpaceLimits(Joint_bounds);
+            setStateSpaceLimits(Joint_bounds,c_space_size);
             Joint_space->as<ob::RealVectorStateSpace>()->setBounds(Joint_bounds);
 
             // Setup Sample space
             ob::SpaceInformationPtr sample_si(new ob::SpaceInformation(Joint_space));
 
             //Setup Validity Checker
-            ValidityChecker checker(sample_si) ;
+            ValidityChecker checker(sample_si,c_space_size,group_name) ;
             ompl::base::StateValidityCheckerPtr validity_checker(&checker, dealocate_StateValidityChecker_fn);
             sample_si->setStateValidityChecker(validity_checker);
             sample_si->setStateValidityCheckingResolution(0.01); // 1%
             sample_si->setup();
-
 
             ob::ScopedState<> start_state = SetStateConfig(start_Config,sample_si);
             start_state.print(std::cout);
@@ -211,7 +225,7 @@ namespace optimize_planner
             // Make a cost function that combines path length with minimizing workspace Euclidian cost
             ob::MultiOptimizationObjective* combined_cost_fn = new ob::MultiOptimizationObjective(sample_si);
             ob::OptimizationObjectivePtr path_length_cost_fn(new ob::PathLengthOptimizationObjective(sample_si));
-            //ob::OptimizationObjectivePtr path_length_cost_fn(new optimize_planner::Configuration_Space_cost(sample_si));
+            //ob::OptimizationObjectivePtr path_length_cost_fn(new optimize_planner::Configuration_Space_cost(sample_si,c_space_size));
             ob::OptimizationObjectivePtr workspace_cost_fn(new optimize_planner::SE3dis_OptimizationObjective(sample_si,&m_robot_model,group_name));
 
             combined_cost_fn->addObjective(path_length_cost_fn, (1.0 - cost_bias));
@@ -224,6 +238,7 @@ namespace optimize_planner
 
             // Make the planner
             ob::PlannerPtr planner(new og::RRTstar(sample_si));
+            //ob::PlannerPtr planner(new og::RRTConnect(sample_si));
 
             planner->setProblemDefinition(pdef);
             planner->setup();
@@ -231,7 +246,6 @@ namespace optimize_planner
             ob::PlannerStatus::StatusType status = planner->solve(planning_time);
 
             // Generate a trajectory
-
             if(status == ob::PlannerStatus::EXACT_SOLUTION || status == ob::PlannerStatus::APPROXIMATE_SOLUTION)
             {
                 std::cout<<"Path Found"<<std::endl;
@@ -240,8 +254,11 @@ namespace optimize_planner
 
                 path = boost::static_pointer_cast<og::PathGeometric>(pdef->getSolutionPath());
 
-                int interpolate_num = 5*round(path->length());
+                ROS_INFO("Setup smoother");
+                og::PathSimplifier pathSmoother(sample_si);
+                pathSmoother.simplify(*path,planning_time);
 
+                int interpolate_num = 5*round(path->length());
                 path->interpolate(interpolate_num);
 
                 std::vector<ob::State*> state = path->getStates();
@@ -249,9 +266,9 @@ namespace optimize_planner
                 for(int i = 0; i<state.size(); i++)
                 {
                     ob::State* Jnt_config = state[i];
-                    std::vector<double> jnt_config(motoman_arm_DOF,0);
+                    std::vector<double> jnt_config(c_space_size,0);
 
-                    for(int j = 0; j<motoman_arm_DOF;j++)
+                    for(int j = 0; j<c_space_size;j++)
                     {
                         jnt_config[j] = Jnt_config->as<ob::RealVectorStateSpace::StateType>()->values[j];
                     }
@@ -271,26 +288,54 @@ namespace optimize_planner
         }
 
     private:
-         bool setStateSpaceLimits(ob::RealVectorBounds& Joint_bounds)
+
+         bool setStateSpaceLimits(ob::RealVectorBounds& Joint_bounds,int bound_num)
          {
              // JointSpace Limits
-             Joint_bounds.setLow(0,-Joint_1_s_Limits);
-             Joint_bounds.setLow(1,-Joint_2_l_Limits);
-             Joint_bounds.setLow(2,-Joint_3_e_Limits);
-             Joint_bounds.setLow(3,-Joint_4_u_Limits);
-             Joint_bounds.setLow(4,-Joint_5_r_Limits);
-             Joint_bounds.setLow(5,-Joint_6_b_Limits);
-             Joint_bounds.setLow(6,-Joint_7_t_Limits);
+             if(bound_num == 8)
+             {
+                 Joint_bounds.setLow(0,-Joint_torso_Limits);
+                 Joint_bounds.setLow(1,-Joint_1_s_Limits);
+                 Joint_bounds.setLow(2,-Joint_2_l_Limits);
+                 Joint_bounds.setLow(3,-Joint_3_e_Limits);
+                 Joint_bounds.setLow(4,-Joint_4_u_Limits);
+                 Joint_bounds.setLow(5,-Joint_5_r_Limits);
+                 Joint_bounds.setLow(6,-Joint_6_b_Limits);
+                 Joint_bounds.setLow(7,-Joint_7_t_Limits);
 
-             Joint_bounds.setHigh(0,Joint_1_s_Limits);
-             Joint_bounds.setHigh(1,Joint_2_l_Limits);
-             Joint_bounds.setHigh(2,Joint_3_e_Limits);
-             Joint_bounds.setHigh(3,Joint_4_u_Limits);
-             Joint_bounds.setHigh(4,Joint_5_r_Limits);
-             Joint_bounds.setHigh(5,Joint_6_b_Limits);
-             Joint_bounds.setHigh(6,Joint_7_t_Limits);
+                 Joint_bounds.setHigh(0,Joint_torso_Limits);
+                 Joint_bounds.setHigh(1,Joint_1_s_Limits);
+                 Joint_bounds.setHigh(2,Joint_2_l_Limits);
+                 Joint_bounds.setHigh(3,Joint_3_e_Limits);
+                 Joint_bounds.setHigh(4,Joint_4_u_Limits);
+                 Joint_bounds.setHigh(5,Joint_5_r_Limits);
+                 Joint_bounds.setHigh(6,Joint_6_b_Limits);
+                 Joint_bounds.setHigh(7,Joint_7_t_Limits);
 
-             return true;
+                 return true;
+             }
+             else if(bound_num == 7)
+             {
+                 Joint_bounds.setLow(0,-Joint_1_s_Limits);
+                 Joint_bounds.setLow(1,-Joint_2_l_Limits);
+                 Joint_bounds.setLow(2,-Joint_3_e_Limits);
+                 Joint_bounds.setLow(3,-Joint_4_u_Limits);
+                 Joint_bounds.setLow(4,-Joint_5_r_Limits);
+                 Joint_bounds.setLow(5,-Joint_6_b_Limits);
+                 Joint_bounds.setLow(6,-Joint_7_t_Limits);
+
+                 Joint_bounds.setHigh(0,Joint_1_s_Limits);
+                 Joint_bounds.setHigh(1,Joint_2_l_Limits);
+                 Joint_bounds.setHigh(2,Joint_3_e_Limits);
+                 Joint_bounds.setHigh(3,Joint_4_u_Limits);
+                 Joint_bounds.setHigh(4,Joint_5_r_Limits);
+                 Joint_bounds.setHigh(5,Joint_6_b_Limits);
+                 Joint_bounds.setHigh(6,Joint_7_t_Limits);
+
+                 return true;
+             }
+             else
+                 return false;
          }
 
          ob::ScopedState<> SetStateConfig(std::vector<double>& state_config, ob::SpaceInformationPtr smp_space)
@@ -335,15 +380,14 @@ namespace optimize_planner
     public:
          double path_length;
          double path_cost;
-
          float planning_time;
          double goal_tolerance;
          float cost_bias;
 
          motoman_move_group m_robot_model;
-
          std::vector<double> start_Config;
          std::vector<double> goal_Config;
+         int c_space_size;
 
          std::vector< std::vector<double> > optimized_trajectory;
 
