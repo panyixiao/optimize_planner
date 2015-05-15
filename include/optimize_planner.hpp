@@ -33,6 +33,8 @@
 #include <moveit/collision_detection_fcl/collision_robot_fcl.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit/robot_state/conversions.h>
+#include <moveit_msgs/PlanningScene.h>
+#include <moveit_msgs/GetPlanningScene.h>
 
 // robot model
 //#include "optimize_planner/include/euclidian_se3_cost.hpp"
@@ -87,6 +89,7 @@ protected:
     ros::NodeHandle nh;
     boost::shared_ptr<ros::Publisher> state_pub_ ;
     int c_space_dim;
+    const std::string GET_PLANNING_SCENE_NAME = "/get_planning_scene" ;
 
 public:
     ValidityChecker(const ob::SpaceInformationPtr& si,int space_dim, std::string group_name) :
@@ -98,8 +101,28 @@ public:
         cworld_.reset() ;
         cworld_ = boost::shared_ptr<collision_detection::CollisionWorld>(new collision_detection::CollisionWorldFCL()) ;
 
+        ros::service::waitForService(GET_PLANNING_SCENE_NAME) ;
+        ros::ServiceClient get_planning_scene_client = nh.serviceClient<moveit_msgs::GetPlanningScene>(GET_PLANNING_SCENE_NAME) ;
+
+        moveit_msgs::GetPlanningScene::Request plan_scene_req ;
+        moveit_msgs::GetPlanningScene::Response plan_scene_res ;
+
+        plan_scene_req.components.components = moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_NAMES
+                                             | moveit_msgs::PlanningSceneComponents::WORLD_OBJECT_GEOMETRY
+                                             | moveit_msgs::PlanningSceneComponents::OCTOMAP
+                                             | moveit_msgs::PlanningSceneComponents::ROBOT_STATE_ATTACHED_OBJECTS
+                                             | moveit_msgs::PlanningSceneComponents::ALLOWED_COLLISION_MATRIX ;
+
+        if(!get_planning_scene_client.call(plan_scene_req,plan_scene_res)) {
+            ROS_WARN("Can't get planning scene !") ;
+        }
+
+//        std::cout << plan_scene_res.scene <<std::endl ;
         planning_scene_ptr_.reset() ;
         planning_scene_ptr_ = std::unique_ptr<planning_scene::PlanningScene>(new planning_scene::PlanningScene(rmodel_->getModel(),cworld_->getWorld())) ;
+        planning_scene_ptr_->setPlanningSceneMsg(plan_scene_res.scene) ;
+//        planning_scene_ptr_->printKnownObjects(std::cout) ;
+//        std::cout << "***********************" << std::endl ;
 
         crobot_.reset() ;
         crobot_ = boost::shared_ptr<collision_detection::CollisionRobotFCL>(new collision_detection::CollisionRobotFCL(rmodel_->getModel())) ;
@@ -126,6 +149,13 @@ public:
         shapes::ShapePtr world_cube ;
         //world_cube.reset(new shapes::Box(0.87, 0.87, 1.77));
         //cworld_->getWorld()->addToObject("bin",world_cube,pose) ;
+        objs = cworld_->getWorld()->getObjectIds() ;
+        std::cout << "objects present " << objs.size() << std::endl ;
+        if(objs.size())
+        {
+             for( int i=0 ; i<cworld_->getWorld()->size() ; i++)
+                 std::cout << objs[i] << std::endl ;
+        }
 
         specs_.clearanceComputationType = ob::StateValidityCheckerSpecs::NONE;
         specs_.hasValidDirectionComputation = false;
